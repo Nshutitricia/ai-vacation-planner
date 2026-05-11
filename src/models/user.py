@@ -14,7 +14,7 @@ class User(SQLModel, table=True):
 class UserCreate(SQLModel):
     username: str
     email: str
-    password: str
+    password: str = Field(min_length=6, max_length=72)
 
 class UserResponse(SQLModel):
     id: int

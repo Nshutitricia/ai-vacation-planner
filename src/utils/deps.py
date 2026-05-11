@@ -3,13 +3,13 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlmodel import Session
 
-from AI_Vacation_Planner.src.database import get_session
-from AI_Vacation_Planner.src.models.user import User
-from AI_Vacation_Planner.src.utils.auth import decode_token
+from src.database import get_session
+from src.models.user import User
+from src.utils.auth import decode_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session())) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -18,7 +18,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
 
     try:
         payload = decode_token(token)
-        user_id = payload.get("user_id")
+        user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception
 
