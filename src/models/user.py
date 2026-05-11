@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import SQLModel, Field
@@ -8,3 +9,15 @@ class User(SQLModel, table=True):
     username: str = Field(unique=True, index=True)
     email: str = Field(unique=True,index=True)
     hashed_password: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class UserCreate(SQLModel):
+    username: str
+    email: str
+    password: str
+
+class UserResponse(SQLModel):
+    id: int
+    username: str
+    email: str
+    created_at: datetime
