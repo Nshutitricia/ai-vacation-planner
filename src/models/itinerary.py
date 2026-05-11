@@ -10,4 +10,16 @@ class Itinerary(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     trip_id: int = Field(foreign_key='trip.id', unique=True)
     days: List[dict] = Field(default=[], sa_column=Column(JSONB))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ItineraryDay(SQLModel):
+    day: int
+    activities: List[str]
+
+class ItineraryCreate(SQLModel):
+    trip_id: int
+    days: List[ItineraryDay]
+
+class ItineraryResponse(SQLModel):
+    trip_id: int
+    days: List[ItineraryDay]
+    message: str
