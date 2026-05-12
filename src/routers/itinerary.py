@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlmodel import Session, select
 from src.database import get_session
 from src.models.itinerary import ItineraryResponse, ItineraryCreate, Itinerary, ItineraryDay
@@ -7,6 +7,8 @@ from src.models.user import User
 from src.utils.deps import get_current_user
 
 from src.models.trip import Trip
+
+from src.utils.background_tasks import log_itinerary_creation
 
 router = APIRouter(
     prefix="/itinerary",
@@ -16,6 +18,7 @@ router = APIRouter(
 @router.post("", response_model=ItineraryResponse, status_code=201)
 def create_itinerary(
         itinerary_data: ItineraryCreate,
+        background_tasks: BackgroundTasks,
         current_user: User = Depends(get_current_user),
         session: Session = Depends(get_session)
 ):
@@ -36,6 +39,11 @@ def create_itinerary(
     session.add(itinerary)
     session.commit()
     session.refresh(itinerary)
+
+    background_tasks.add_task(
+        log_itinerary_creation,
+        destination = trip.destination,
+    )
 
     return ItineraryResponse(
         trip_id = itinerary.trip_id,

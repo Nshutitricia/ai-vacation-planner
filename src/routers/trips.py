@@ -1,10 +1,12 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlmodel import Session, select
 from src.database import get_session
 from src.models.trip import TripResponse, TripCreate, Trip
 from src.models.user import User
 from src.utils.deps import get_current_user
+
+from src.utils.background_tasks import log_trip_creation
 
 router = APIRouter(
     prefix="/trips",
@@ -14,6 +16,7 @@ router = APIRouter(
 @router.post("", response_model=TripResponse, status_code=201)
 def create_trip(
         trip_data: TripCreate,
+        background_tasks: BackgroundTasks,
         current_user: User = Depends(get_current_user),
         session: Session = Depends(get_session)
 ):
@@ -24,6 +27,11 @@ def create_trip(
     session.add(trip)
     session.commit()
     session.refresh(trip)
+    background_tasks.add_task(
+        log_trip_creation,
+        username = current_user.username,
+        destination = trip.destination,
+    )
     return trip
 
 @router.get("", response_model=list[TripResponse])
