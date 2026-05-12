@@ -8,6 +8,8 @@ from src.utils.deps import get_current_user
 
 from src.utils.background_tasks import log_trip_creation
 
+from src.models.itinerary import Itinerary
+
 router = APIRouter(
     prefix="/trips",
     tags=["trips"],
@@ -88,7 +90,9 @@ def delete_trip(
         raise HTTPException(status_code=404, detail="Trip not found")
     if not trip.user_id == current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-
+    itinerary = session.exec(select(Itinerary).filter(Itinerary.trip_id == trip_id)).first()
+    if itinerary:
+        session.delete(itinerary)
     session.delete(trip)
     session.commit()
 
