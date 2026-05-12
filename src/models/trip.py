@@ -24,7 +24,7 @@ class TripResponse(SQLModel):
     id: int
     destination: str
     days: int
-    budget: str
+    budget: float
     trip_style: str
     user_id: int
     created_at: datetime
