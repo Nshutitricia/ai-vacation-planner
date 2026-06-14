@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import field_validator
 from sqlmodel import SQLModel, Field
 
 
@@ -12,7 +13,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserCreate(SQLModel):
-    username: str
+    username: str = Field(min_length=3, max_length=50)
     email: str
     password: str = Field(min_length=6, max_length=72)
 

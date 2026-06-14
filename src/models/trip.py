@@ -14,10 +14,10 @@ class Trip(SQLModel, table=True):
     created_at: datetime = Field(default_factory= datetime.utcnow)
 
 class TripCreate(SQLModel):
-    destination: str
-    days: int
-    budget: float
-    trip_style: str
+    destination: str = Field(min_length=2, max_length=100)
+    days: int = Field(ge=1, le=30)
+    budget: float = Field(gt=0)
+    trip_style: str = Field(min_length=2, max_length=50)
 
 
 class TripResponse(SQLModel):
