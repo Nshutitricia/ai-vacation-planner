@@ -8,6 +8,7 @@ from src.models.trip import Trip
 from src.utils.background_tasks import log_itinerary_creation
 from src.models.itinerary import ItineraryGenerate
 from src.services.itinerary_service import ItineraryService
+from src.models.itinerary import ActivityDetail
 
 router = APIRouter(
     prefix="/itinerary",
@@ -99,8 +100,23 @@ def get_itinerary(
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary not found")
 
+    days = []
+    for day in itinerary.days:
+        activities = []
+        for activity in day.get("activities", []):
+            if isinstance(activity, dict):
+                activities.append(ActivityDetail(**activity))
+            else:
+                activities.append(activity)
+
+        days.append(ItineraryDay(
+            day=day.get("day"),
+            theme=day.get("theme"),
+            activities=activities
+        ))
+
     return ItineraryResponse(
         trip_id=itinerary.trip_id,
-        days=[ItineraryDay(**day) for day in itinerary.days],
+        days=days,
         message="Itinerary retrieved successfully"
     )

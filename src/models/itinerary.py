@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
@@ -11,16 +11,32 @@ class Itinerary(SQLModel, table=True):
     trip_id: int = Field(foreign_key='trip.id', unique=True)
     days: List[dict] = Field(default=[], sa_column=Column(JSONB))
 
+class ActivityDetail(SQLModel):
+
+    name: str
+    description: str
+    estimated_cost: str
+
+
 class ItineraryDay(SQLModel):
-    day: int = Field(ge=1)
-    activities: List[str] = Field(min_length=1)
+    day: int
+    theme: Optional[str] = None
+    activities: List[Union[ActivityDetail, str]]
+
 
 class ItineraryCreate(SQLModel):
-    trip_id: int  = Field(gt=0)
-    days: List[ItineraryDay] = Field(min_length=1)
+    trip_id: int
+    days: List["ItineraryDayCreate"]
+
+
+class ItineraryDayCreate(SQLModel):
+    day: int
+    activities: List[str]
+
 
 class ItineraryGenerate(SQLModel):
     trip_id: int = Field(gt=0)
+
 
 class ItineraryResponse(SQLModel):
     trip_id: int

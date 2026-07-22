@@ -19,25 +19,34 @@ class ResponseParser:
         return self._validate_schema(data)
 
     def _clean_response(self, response_text: str) -> str:
-        """
-        Clean the raw LLM response text.
-        Removes any markdown or extra whitespace.
-        """
         cleaned = response_text.strip()
 
-        if cleaned.startswith("```json"):
-            cleaned = cleaned[7:]
-        if cleaned.startswith("```"):
-            cleaned = cleaned[3:]
-        if cleaned.endswith("```"):
-            cleaned = cleaned[:-3]
+        if "```json" in cleaned:
+            start = cleaned.find("```json") + 7
+            end = cleaned.find("```", start)
+            if end != -1:
+                cleaned = cleaned[start:end].strip()
+            else:
+                cleaned = cleaned[start:].strip()
+        elif "```" in cleaned:
+            start = cleaned.find("```") + 3
+            end = cleaned.find("```", start)
+            if end != -1:
+                cleaned = cleaned[start:end].strip()
+            else:
+                cleaned = cleaned[start:].strip()
 
         cleaned = cleaned.strip()
 
         if not cleaned.startswith("{"):
-            cleaned = "{" + cleaned
+            start = cleaned.find("{")
+            if start != -1:
+                cleaned = cleaned[start:]
+
         if not cleaned.endswith("}"):
-            cleaned = cleaned + "}"
+            end = cleaned.rfind("}")
+            if end != -1:
+                cleaned = cleaned[:end + 1]
 
         return cleaned
 
