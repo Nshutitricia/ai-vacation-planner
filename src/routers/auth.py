@@ -11,10 +11,31 @@ from src.utils.background_tasks import send_welcome_message,track_login_activity
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserCreate, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
-    existing = session.exec(select(User).where(User.email == user_data.email)).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+def register(
+    user_data: UserCreate,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session)
+):
+    # check email
+    existing_email = session.exec(
+        select(User).where(User.email == user_data.email)
+    ).first()
+    if existing_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+
+    # check username
+    existing_username = session.exec(
+        select(User).where(User.username == user_data.username)
+    ).first()
+    if existing_username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already taken"
+        )
+
     user = User.model_validate(
         user_data,
         update={"hashed_password": hash_password(user_data.password)}
@@ -22,11 +43,13 @@ def register(user_data: UserCreate, background_tasks: BackgroundTasks, session: 
     session.add(user)
     session.commit()
     session.refresh(user)
+
     background_tasks.add_task(
         send_welcome_message,
-        username = user.username,
-        email = user.email
+        email=user.email,
+        username=user.username
     )
+
     return user
 
 @router.post("/login")

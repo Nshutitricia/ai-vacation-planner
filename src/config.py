@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     ANTHROPIC_API_KEY:str
+    LLM_PROVIDER: str = "anthropic"
 
     class Config:
         env_file = ".env"
