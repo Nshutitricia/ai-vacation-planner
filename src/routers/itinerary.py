@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlmodel import Session, select
 from src.database import get_session
@@ -9,6 +10,8 @@ from src.utils.background_tasks import log_itinerary_creation
 from src.models.itinerary import ItineraryGenerate
 from src.services.itinerary_service import ItineraryService
 from src.models.itinerary import ActivityDetail
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/itinerary",
@@ -70,10 +73,13 @@ def generate_ai_itinerary(
         itinerary = service.generate(trip=trip, session=session)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
+        logger.exception(
+            f"AI itinerary generation failed for trip {trip.id}"
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"AI generation failed: {str(e)}"
+            detail="AI generation failed. Please try again later."
         )
 
     return ItineraryResponse(

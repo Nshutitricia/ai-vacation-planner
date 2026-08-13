@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status, Depends, HTTPException, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 from src.database import get_session
 from src.models.user import UserResponse, UserCreate, User
@@ -41,7 +42,14 @@ def register(
         update={"hashed_password": hash_password(user_data.password)}
     )
     session.add(user)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Email or username already registered"
+        )
     session.refresh(user)
 
     background_tasks.add_task(
@@ -56,7 +64,7 @@ def register(
 def login(background_tasks: BackgroundTasks,form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
     user = session.exec(select(User).where(User.username == form_data.username)).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
     token = create_access_token({"sub": str(user.id)})
 
     background_tasks.add_task(

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     ANTHROPIC_API_KEY:str
     LLM_PROVIDER: str = "anthropic"
+    DEBUG: bool = False
 
     class Config:
         env_file = ".env"
