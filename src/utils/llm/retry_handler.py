@@ -2,9 +2,25 @@ import time
 import logging
 from typing import Callable, TypeVar
 
+from anthropic import (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+RETRYABLE_EXCEPTIONS = (
+    ValueError,
+    APIConnectionError,
+    APITimeoutError,
+    RateLimitError,
+    InternalServerError,
+)
+
 
 class RetryHandler:
     """
@@ -22,7 +38,7 @@ class RetryHandler:
     def execute(self, func: Callable[..., T], *args, **kwargs) -> T:
         """
         Execute a function with retry logic.
-        Retries on ValueError up to max_attempts times.
+        Retries on RETRYABLE_EXCEPTIONS up to max_attempts times.
         Raises the last error if all attempts fail.
         """
         last_error = None
@@ -34,7 +50,7 @@ class RetryHandler:
                 logger.info(f"Attempt {attempt} succeeded")
                 return result
 
-            except ValueError as e:
+            except RETRYABLE_EXCEPTIONS as e:
                 last_error = e
                 logger.warning(
                     f"Attempt {attempt} failed: {str(e)}"
@@ -48,7 +64,4 @@ class RetryHandler:
                         f"All {self.max_attempts} attempts failed"
                     )
 
-        raise ValueError(
-            f"Failed after {self.max_attempts} attempts. "
-            f"Last error: {str(last_error)}"
-        )
+        raise last_error
