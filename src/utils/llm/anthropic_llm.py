@@ -88,7 +88,13 @@ class AnthropicLLM(BaseLLM):
                 system=system,
                 tools=[self.weather_tool.definition],
                 messages=messages,
-                stop_sequences=self.stop_sequences
+                stop_sequences=self.stop_sequences,
+                output_config={
+                    "format": {
+                        "type": "json_schema",
+                        "schema": ItinerarySchema.output_json_schema()
+                    }
+                }
             )
 
             logger.info(f"Stop reason: {response.stop_reason}")

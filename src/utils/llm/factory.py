@@ -1,4 +1,5 @@
 import logging
+from src.config import settings
 from src.utils.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
@@ -11,8 +12,6 @@ def get_llm_client() -> BaseLLM:
     This is the only place in the codebase that knows
     which LLM provider is being used.
     """
-    from src.config import settings
-
     provider = settings.LLM_PROVIDER.lower()
 
     logger.info(f"Creating LLM client for provider: {provider}")

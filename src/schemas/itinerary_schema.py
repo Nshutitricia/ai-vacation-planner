@@ -62,3 +62,26 @@ class ItinerarySchema(BaseModel):
                     f"total_days ({info.data['total_days']})"
                 )
         return v
+
+    @classmethod
+    def output_json_schema(cls) -> dict:
+        """
+        JSON schema for Claude's output_config, so the API enforces
+        this exact shape instead of relying on prompt instructions.
+        Anthropic requires every object node to explicitly set
+        additionalProperties: false.
+        """
+        schema = cls.model_json_schema()
+        _forbid_additional_properties(schema)
+        return schema
+
+
+def _forbid_additional_properties(node) -> None:
+    if isinstance(node, dict):
+        if node.get("type") == "object":
+            node["additionalProperties"] = False
+        for value in node.values():
+            _forbid_additional_properties(value)
+    elif isinstance(node, list):
+        for item in node:
+            _forbid_additional_properties(item)

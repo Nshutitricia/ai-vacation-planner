@@ -43,20 +43,21 @@ class RetryHandler:
         """
         last_error = None
 
-        for attempt in range(1, self.max_attempts + 1):
+        for attempt in range(self.max_attempts):
+            attempt_number = attempt + 1
             try:
-                logger.info(f"Attempt {attempt} of {self.max_attempts}")
+                logger.info(f"Attempt {attempt_number} of {self.max_attempts}")
                 result = func(*args, **kwargs)
-                logger.info(f"Attempt {attempt} succeeded")
+                logger.info(f"Attempt {attempt_number} succeeded")
                 return result
 
             except RETRYABLE_EXCEPTIONS as e:
                 last_error = e
                 logger.warning(
-                    f"Attempt {attempt} failed: {str(e)}"
+                    f"Attempt {attempt_number} failed: {str(e)}"
                 )
 
-                if attempt < self.max_attempts:
+                if attempt_number < self.max_attempts:
                     logger.info(f"Retrying in {self.delay} seconds...")
                     time.sleep(self.delay)
                 else:
