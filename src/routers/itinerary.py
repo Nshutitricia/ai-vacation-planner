@@ -1,14 +1,17 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlmodel import Session, select
 from src.database import get_session
 from src.models.itinerary import ItineraryResponse, ItineraryCreate, Itinerary, ItineraryDay
 from src.models.user import User
-from src.utils.deps import get_current_user
+from src.utils.deps import get_current_user, get_owned_trip, fetch_owned_trip
 from src.models.trip import Trip
 from src.utils.background_tasks import log_itinerary_creation
 from src.models.itinerary import ItineraryGenerate
 from src.services.itinerary_service import ItineraryService
 from src.models.itinerary import ActivityDetail
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/itinerary",
@@ -22,11 +25,7 @@ def create_itinerary(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    trip = session.get(Trip, itinerary_data.trip_id)
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not allowed")
+    trip = fetch_owned_trip(itinerary_data.trip_id, current_user, session)
 
     existing = session.exec(
         select(Itinerary).filter(Itinerary.trip_id == itinerary_data.trip_id)
@@ -59,21 +58,20 @@ def generate_ai_itinerary(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    trip = session.get(Trip, itinerary_data.trip_id)
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not allowed")
+    trip = fetch_owned_trip(itinerary_data.trip_id, current_user, session)
 
     try:
         service = ItineraryService()
         itinerary = service.generate(trip=trip, session=session)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
+        logger.exception(
+            f"AI itinerary generation failed for trip {trip.id}"
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"AI generation failed: {str(e)}"
+            detail="AI generation failed. Please try again later."
         )
 
     return ItineraryResponse(
@@ -84,18 +82,11 @@ def generate_ai_itinerary(
 
 @router.get("/{trip_id}", response_model=ItineraryResponse)
 def get_itinerary(
-    trip_id: int,
-    current_user: User = Depends(get_current_user),
+    trip: Trip = Depends(get_owned_trip),
     session: Session = Depends(get_session)
 ):
-    trip = session.get(Trip, trip_id)
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-    if trip.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not allowed")
-
     itinerary = session.exec(
-        select(Itinerary).filter(Itinerary.trip_id == trip_id)
+        select(Itinerary).filter(Itinerary.trip_id == trip.id)
     ).first()
     if not itinerary:
         raise HTTPException(status_code=404, detail="Itinerary not found")

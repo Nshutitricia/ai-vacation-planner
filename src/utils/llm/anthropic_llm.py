@@ -26,6 +26,7 @@ class AnthropicLLM(BaseLLM):
         self.max_tokens = 2048
         self.temperature = 0.3
         self.stop_sequences = []
+        self.max_tool_iterations = 5
 
     def get_model_name(self) -> str:
         return self.model
@@ -76,7 +77,7 @@ class AnthropicLLM(BaseLLM):
 
     def _run_tool_loop(self, messages: list, system: str) -> str:
         iteration = 0
-        while True:
+        while iteration < self.max_tool_iterations:
             iteration += 1
             logger.info(f"--- Loop iteration {iteration} ---")
 
@@ -87,7 +88,13 @@ class AnthropicLLM(BaseLLM):
                 system=system,
                 tools=[self.weather_tool.definition],
                 messages=messages,
-                stop_sequences=self.stop_sequences
+                stop_sequences=self.stop_sequences,
+                output_config={
+                    "format": {
+                        "type": "json_schema",
+                        "schema": ItinerarySchema.output_json_schema()
+                    }
+                }
             )
 
             logger.info(f"Stop reason: {response.stop_reason}")
@@ -126,3 +133,8 @@ class AnthropicLLM(BaseLLM):
                 "role": "user",
                 "content": tool_results
             })
+
+        raise ValueError(
+            f"Claude did not finish within {self.max_tool_iterations} "
+            f"tool-call iterations"
+        )

@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, create_engine, Session
 from src.config import settings
 
-engine = create_engine(settings.DATABASE_URL, echo=True)
+engine = create_engine(settings.DATABASE_URL, echo=settings.DEBUG)
 
 def get_session():
     with Session(engine) as session:

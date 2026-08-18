@@ -13,50 +13,21 @@ class ResponseParser:
         Parse and validate the LLM response text.
         Returns a validated ItinerarySchema object.
         Raises ValueError if parsing or validation fails.
+
+        The LLM call uses output_config with a JSON schema, so Claude's
+        response text is already guaranteed to be a bare, schema-conformant
+        JSON object with no markdown fences or extra prose to strip out.
         """
-        cleaned = self._clean_response(response_text)
-        data = self._parse_json(cleaned)
+        data = self._parse_json(response_text)
         return self._validate_schema(data)
 
-    def _clean_response(self, response_text: str) -> str:
-        cleaned = response_text.strip()
-
-        if "```json" in cleaned:
-            start = cleaned.find("```json") + 7
-            end = cleaned.find("```", start)
-            if end != -1:
-                cleaned = cleaned[start:end].strip()
-            else:
-                cleaned = cleaned[start:].strip()
-        elif "```" in cleaned:
-            start = cleaned.find("```") + 3
-            end = cleaned.find("```", start)
-            if end != -1:
-                cleaned = cleaned[start:end].strip()
-            else:
-                cleaned = cleaned[start:].strip()
-
-        cleaned = cleaned.strip()
-
-        if not cleaned.startswith("{"):
-            start = cleaned.find("{")
-            if start != -1:
-                cleaned = cleaned[start:]
-
-        if not cleaned.endswith("}"):
-            end = cleaned.rfind("}")
-            if end != -1:
-                cleaned = cleaned[:end + 1]
-
-        return cleaned
-
-    def _parse_json(self, cleaned_text: str) -> dict:
+    def _parse_json(self, response_text: str) -> dict:
         """
-        Parse the cleaned text into a Python dictionary.
+        Parse the response text into a Python dictionary.
         Raises ValueError if JSON is invalid.
         """
         try:
-            return json.loads(cleaned_text)
+            return json.loads(response_text)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON from LLM: {str(e)}")
 
