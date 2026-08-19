@@ -2,10 +2,10 @@ import logging
 from anthropic import Anthropic
 from src.config import settings
 from src.schemas.itinerary_schema import ItinerarySchema
-from src.utils.llm.base import BaseLLM
-from src.utils.llm.prompt_builder import PromptBuilder
-from src.utils.llm.response_parser import ResponseParser
-from src.utils.llm.tools import WeatherTool
+from src.llm.base import BaseLLM
+from src.llm.prompt_builder import PromptBuilder
+from src.llm.response_parser import ResponseParser
+from src.llm.tools import WeatherTool
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,8 @@ class AnthropicLLM(BaseLLM):
         days: int,
         budget: float,
         trip_style: str,
-        weather: str = None
+        weather: str = None,
+        knowledge_context: list = None
     ) -> ItinerarySchema:
         """
         Generate a structured itinerary using Claude.
@@ -56,7 +57,8 @@ class AnthropicLLM(BaseLLM):
             destination=destination,
             days=days,
             budget=budget,
-            trip_style=trip_style
+            trip_style=trip_style,
+            knowledge_context=knowledge_context
         )
 
         system = self.prompt_builder.get_system_prompt()

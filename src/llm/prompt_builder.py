@@ -1,4 +1,4 @@
-from src.utils.llm.system_prompts import ITINERARY_SYSTEM_PROMPT
+from src.llm.system_prompts import ITINERARY_SYSTEM_PROMPT
 
 
 class PromptBuilder:
@@ -9,7 +9,8 @@ class PromptBuilder:
         days: int,
         budget: float,
         trip_style: str,
-        weather: str = None
+        weather: str = None,
+        knowledge_context: list = None
     ) -> list:
 
         weather_section = ""
@@ -17,6 +18,19 @@ class PromptBuilder:
             weather_section = (
                 f"\nCurrent weather in {destination}: {weather}"
                 f"\nPlease consider the weather when suggesting activities."
+            )
+
+        knowledge_section = ""
+        if knowledge_context:
+            notes = "\n".join(f"- {chunk}" for chunk in knowledge_context)
+            knowledge_section = (
+                f"\nRetrieved travel knowledge:\n{notes}\n"
+                f"\nIMPORTANT: Only use the above if it is genuinely about "
+                f"{destination} itself. If any of it refers to a different "
+                f"city, region, or country than {destination}, ignore that "
+                f"part completely — do not mention it, and do not restructure "
+                f"the itinerary (e.g. adding a day trip) just to make "
+                f"unrelated content fit.\n"
             )
 
         prompt = f"""
@@ -27,6 +41,7 @@ Trip details:
 - Travel style: {trip_style}
 - Number of days: {days}
 {weather_section}
+{knowledge_section}
 
 Travel style guide:
 - budget: Free or low-cost attractions, street food, public transport

@@ -13,7 +13,8 @@ class BaseLLM(ABC):
         destination: str,
         days: int,
         budget: float,
-        trip_style: str
+        trip_style: str,
+        knowledge_context: list = None
     ) -> ItinerarySchema:
         """
         Generate a structured itinerary for a trip.

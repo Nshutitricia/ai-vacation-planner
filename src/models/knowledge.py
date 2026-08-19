@@ -20,3 +20,14 @@ class KnowledgeChunk(SQLModel, table=True):
         sa_column=Column(Vector(settings.EMBEDDING_DIMENSIONS), nullable=False)
     )
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class KnowledgeSearchResult(SQLModel):
+    source: str
+    category: str
+    content: str
+
+
+class KnowledgeSearchResponse(SQLModel):
+    query: str
+    results: list[KnowledgeSearchResult]

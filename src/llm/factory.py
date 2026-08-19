@@ -1,6 +1,6 @@
 import logging
 from src.config import settings
-from src.utils.llm.base import BaseLLM
+from src.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ def get_llm_client() -> BaseLLM:
     logger.info(f"Creating LLM client for provider: {provider}")
 
     if provider == "anthropic":
-        from src.utils.llm.anthropic_llm import AnthropicLLM
+        from src.llm.anthropic_llm import AnthropicLLM
         return AnthropicLLM()
 
     elif provider == "openai":

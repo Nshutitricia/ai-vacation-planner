@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from src.database import engine
 from src.services.knowledge_service import KnowledgeService
-from src.utils.embeddings.chunker import chunk_text
+from src.embeddings.chunker import chunk_text
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
