@@ -8,6 +8,7 @@ from src.config import settings
 from src.models.user import User
 from src.models.trip import Trip
 from src.models.itinerary import Itinerary
+from src.models.knowledge import KnowledgeChunk
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
