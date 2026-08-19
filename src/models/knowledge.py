@@ -15,6 +15,7 @@ class KnowledgeChunk(SQLModel, table=True):
     content: str
     source: str = Field(index=True)
     category: str = Field(index=True)
+    content_hash: str = Field(index=True)
     embedding: list[float] = Field(
         sa_column=Column(Vector(settings.EMBEDDING_DIMENSIONS), nullable=False)
     )

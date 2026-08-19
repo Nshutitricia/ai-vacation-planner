@@ -17,3 +17,6 @@ Exchanging a small amount before departure covers immediate needs like taxis, bu
 
 **How do I pack light for a two-week trip?**
 Planning outfits around a small number of interchangeable pieces, choosing quick-dry fabrics that can be washed and worn again, and packing for laundry access rather than a fresh outfit every day are the most reliable ways to avoid overpacking.
+
+**Do I need a visa for most international trips?**
+Requirements vary widely by passport and destination, so checking the specific country's official immigration guidance well before departure is the only reliable way to confirm, rather than relying on general assumptions from other travelers.
