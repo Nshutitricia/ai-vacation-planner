@@ -23,24 +23,11 @@ RETRYABLE_EXCEPTIONS = (
 
 
 class RetryHandler:
-    """
-    Responsible for retrying failed LLM calls.
-    """
-
     def __init__(self, max_attempts: int = 3, delay: float = 1.0):
-        """
-        max_attempts → how many times to try before giving up
-        delay        → seconds to wait between attempts
-        """
         self.max_attempts = max_attempts
         self.delay = delay
 
     def execute(self, func: Callable[..., T], *args, **kwargs) -> T:
-        """
-        Execute a function with retry logic.
-        Retries on RETRYABLE_EXCEPTIONS up to max_attempts times.
-        Raises the last error if all attempts fail.
-        """
         last_error = None
 
         for attempt in range(self.max_attempts):

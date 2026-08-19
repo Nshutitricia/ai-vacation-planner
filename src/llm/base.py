@@ -2,10 +2,6 @@ from abc import ABC, abstractmethod
 from src.schemas.itinerary_schema import ItinerarySchema
 
 class BaseLLM(ABC):
-    """
-    Abstract base class for all LLM providers.
-    Any LLM (Claude, GPT, Gemini) must implement these methods.
-    """
 
     @abstractmethod
     def generate_itinerary(
@@ -16,10 +12,8 @@ class BaseLLM(ABC):
         trip_style: str,
         knowledge_context: list = None
     ) -> ItinerarySchema:
-        """
-        Generate a structured itinerary for a trip.
-        Must return a validated ItinerarySchema object.
-        """
+
+
         pass
 
     @abstractmethod

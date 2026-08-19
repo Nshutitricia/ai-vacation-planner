@@ -4,11 +4,6 @@ from src.embeddings.embedder import VoyageEmbedder
 
 
 class KnowledgeService:
-    # Cosine distance cutoff below which a chunk counts as actually
-    # relevant. Picked empirically: genuinely relevant queries against
-    # this knowledge base scored 0.33-0.44, while clearly unrelated
-    # queries (a destination/topic with no matching content) scored
-    # 0.53 and up. 0.5 sits cleanly in the gap between the two.
     DEFAULT_MAX_DISTANCE = 0.5
 
     def __init__(self):
@@ -21,13 +16,6 @@ class KnowledgeService:
         top_k: int = 5,
         max_distance: float = DEFAULT_MAX_DISTANCE
     ) -> list[KnowledgeChunk]:
-        """
-        Return up to top_k chunks semantically similar to the query,
-        excluding any whose distance exceeds max_distance — so a query
-        with no genuinely relevant content in the knowledge base
-        returns an empty list instead of the "closest available"
-        chunks regardless of how unrelated they actually are.
-        """
         query_vector = self.embedder.embed_query(query)
         distance = KnowledgeChunk.embedding.cosine_distance(query_vector)
         rows = session.exec(

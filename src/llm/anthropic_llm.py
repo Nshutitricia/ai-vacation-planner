@@ -11,12 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class AnthropicLLM(BaseLLM):
-    """
-    Claude implementation of BaseLLM.
-    Uses a tool calling loop — Claude decides when
-    to call tools during generation.
-    """
-
     def __init__(self):
         self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         self.model = "claude-haiku-4-5"
@@ -43,11 +37,6 @@ class AnthropicLLM(BaseLLM):
         weather: str = None,
         knowledge_context: list = None
     ) -> ItinerarySchema:
-        """
-        Generate a structured itinerary using Claude.
-        Claude decides when to call the weather tool.
-        Returns a validated ItinerarySchema object.
-        """
         logger.info(
             f"Generating itinerary for {destination} "
             f"using {self.model}"
@@ -68,10 +57,6 @@ class AnthropicLLM(BaseLLM):
         return self.parser.parse(response_text)
 
     def _run_tool(self, tool_name: str, tool_input: dict) -> str:
-        """
-        Run a tool by name and return the result as a string.
-        Add more tools here as the app grows.
-        """
         if tool_name == "get_weather":
             return self.weather_tool.process_tool_call(tool_input)
 

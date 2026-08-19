@@ -11,12 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class ItineraryService:
-    """
-    Orchestrates itinerary generation.
-    Separation of concern: coordinates LLM, retry, and DB operations.
-    Knows nothing about HTTP, FastAPI, or request/response.
-    """
-
     def __init__(self):
         self.llm = get_llm_client()
         self.knowledge_service = KnowledgeService()
@@ -30,11 +24,6 @@ class ItineraryService:
         trip: Trip,
         session: Session
     ) -> Itinerary:
-        """
-        Generate an AI itinerary for a trip.
-        Handles retry logic and saves to database.
-        Returns saved Itinerary object.
-        """
         logger.info(
             f"Starting itinerary generation for "
             f"trip {trip.id} to {trip.destination}"
@@ -71,11 +60,7 @@ class ItineraryService:
         trip: Trip,
         session: Session
     ) -> list:
-        """
-        Retrieve relevant travel knowledge for this trip.
-        Returns an empty list (rather than raising) if retrieval fails,
-        since missing context shouldn't block itinerary generation.
-        """
+
         query = f"{trip.destination} {trip.trip_style} travel tips"
         try:
             chunks = self.knowledge_service.search(query, session, top_k=3)
@@ -92,10 +77,7 @@ class ItineraryService:
         trip_id: int,
         session: Session
     ) -> None:
-        """
-        Check if itinerary already exists for this trip.
-        Raises ValueError if it does.
-        """
+
         existing = session.exec(
             select(Itinerary).filter(
                 Itinerary.trip_id == trip_id
@@ -113,10 +95,6 @@ class ItineraryService:
         itinerary_schema: ItinerarySchema,
         session: Session
     ) -> Itinerary:
-        """
-        Convert ItinerarySchema to Itinerary DB model and save.
-        Returns the saved Itinerary object.
-        """
         days_data = [
             {
                 "day": day.day,
