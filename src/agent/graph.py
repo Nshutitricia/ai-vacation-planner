@@ -15,7 +15,7 @@ from src.agent.tools.maps import find_place
 from src.agent.tools.pricing import estimate_trip_cost
 from src.agent.tools.weather import get_weather
 from src.config import settings
-from src.llm.retry_handler import RetryHandler
+from src.agent.retry_handler import RetryHandler
 from src.schemas.itinerary_schema import ItinerarySchema
 
 
