@@ -2,6 +2,7 @@ from src.llm.system_prompts import ITINERARY_SYSTEM_PROMPT
 
 
 class PromptBuilder:
+    MAX_KNOWLEDGE_CHARS = 4000
 
     def build_messages(
         self,
@@ -22,7 +23,12 @@ class PromptBuilder:
 
         knowledge_section = ""
         if knowledge_context:
-            notes = "\n".join(f"- {chunk}" for chunk in knowledge_context)
+            included = self._cap_knowledge_context(knowledge_context)
+        else:
+            included = []
+
+        if included:
+            notes = "\n".join(f"- {chunk}" for chunk in included)
             knowledge_section = (
                 f"\nRetrieved travel knowledge:\n{notes}\n"
                 f"\nIMPORTANT: Only use the above if it is genuinely about "
@@ -57,6 +63,16 @@ then create the itinerary based on the weather.
         messages = []
         self.add_user_message(messages, prompt)
         return messages
+
+    def _cap_knowledge_context(self, chunks: list) -> list:
+        included = []
+        total_chars = 0
+        for chunk in chunks:
+            if total_chars + len(chunk) > self.MAX_KNOWLEDGE_CHARS:
+                break
+            included.append(chunk)
+            total_chars += len(chunk)
+        return included
 
     def get_system_prompt(self) -> str:
         return ITINERARY_SYSTEM_PROMPT

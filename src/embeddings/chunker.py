@@ -46,11 +46,7 @@ def _split_by_sentence(paragraph: str, chunk_size: int) -> list[str]:
 
 
 def _overlap_tail(text: str, overlap: int) -> str:
-
     if overlap <= 0:
         return ""
     tail = text[-overlap:]
-    space_index = tail.find(" ")
-    if space_index != -1:
-        tail = tail[space_index + 1:]
-    return tail
+    return re.sub(r"^\S*\s+", "", tail)

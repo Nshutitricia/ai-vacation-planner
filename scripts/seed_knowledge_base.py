@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sqlmodel import Session
 
 from src.database import engine
-from src.services.knowledge_service import KnowledgeService
+from src.services.knowledge_service import KnowledgeService, SourceRecord
 from src.embeddings.chunker import chunk_text
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -56,7 +56,7 @@ def seed() -> None:
                 continue
 
             logger.info(f"New or changed, re-embedding: {source}")
-            records.append((source, category, content_hash, chunk_text(text)))
+            records.append(SourceRecord(source, category, content_hash, chunk_text(text)))
 
         embedded_count = service.reindex_sources(records, session)
         session.commit()

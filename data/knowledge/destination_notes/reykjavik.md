@@ -11,3 +11,5 @@ The Northern Lights are never guaranteed and depend on clear skies and solar act
 Reykjavik itself is a small, walkable city, and most visitors do not need a car for the days spent purely within the capital. The Blue Lagoon is popular but often requires advance booking, sometimes weeks ahead during peak season, since walk-in capacity is limited.
 
 Iceland is expensive relative to many European destinations, particularly for dining out. Grocery store meals and preparing some food in accommodations with kitchens is a common way travelers manage costs over longer stays.
+
+Hallgrimskirkja church, Reykjavik's tallest building, has an observation deck accessible for a small fee, offering one of the best panoramic views of the city's colorful rooftops.
