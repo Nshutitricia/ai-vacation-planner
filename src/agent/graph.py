@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated, Optional, TypedDict
 
 from langchain_anthropic import ChatAnthropic
@@ -14,6 +15,7 @@ from src.agent.tools.maps import find_place
 from src.agent.tools.pricing import estimate_trip_cost
 from src.agent.tools.weather import get_weather
 from src.config import settings
+from src.llm.retry_handler import RetryHandler
 from src.schemas.itinerary_schema import ItinerarySchema
 
 
@@ -56,7 +58,10 @@ def build_agent_graph(session: Session):
         return {"messages": [response]}
 
     def finalize(state: AgentState) -> dict:
-        itinerary = structured_model.invoke(state["messages"])
+        try:
+            itinerary = structured_model.invoke(state["messages"])
+        except Exception as e:
+            raise ValueError(f"Failed to produce a valid itinerary: {str(e)}") from e
         return {"itinerary": itinerary}
 
     tool_node = ToolNode(tools)
@@ -77,3 +82,23 @@ def build_agent_graph(session: Session):
 
     checkpointer = MemorySaver()
     return graph.compile(checkpointer=checkpointer)
+
+
+def run_agent(user_request: str, session: Session) -> ItinerarySchema:
+
+    graph = build_agent_graph(session)
+    messages = build_initial_messages(user_request)
+    retry_handler = RetryHandler(max_attempts=3, delay=1.0)
+
+    def _invoke():
+        config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+        result = graph.invoke(
+            {"messages": messages, "itinerary": None},
+            config=config
+        )
+        itinerary = result.get("itinerary")
+        if itinerary is None:
+            raise ValueError("Agent did not produce a final itinerary")
+        return itinerary
+
+    return retry_handler.execute(_invoke)
