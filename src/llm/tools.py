@@ -7,11 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class WeatherTool:
-    """
-    Tool for getting current weather data.
-    Uses wttr.in free weather API - no API key needed.
-    Separation of concern: only handles weather lookup.
-    """
 
     name = "get_weather"
     description = "Get the current weather for a destination city"
@@ -33,11 +28,6 @@ class WeatherTool:
     }
 
     def get_weather(self, city: str) -> str:
-        """
-        Fetch current weather for a city from wttr.in.
-        Returns a human readable weather string.
-        Falls back to a default message if the API fails.
-        """
         try:
             city_url = city.replace(" ", "+").replace(",", "")
             url = f"https://wttr.in/{city_url}?format=j1"
@@ -80,18 +70,12 @@ class WeatherTool:
             return self._fallback_weather(city)
 
     def _fallback_weather(self, city: str) -> str:
-        """
-        Return a fallback message when weather API fails.
-        This ensures itinerary generation continues even without weather data.
-        """
+
         logger.info(f"Using fallback weather for {city}")
         return f"Weather data unavailable for {city}. Plan for varied conditions."
 
     def process_tool_call(self, tool_input: dict) -> str:
-        """
-        Process a tool call from Claude.
-        Called when Claude requests weather data.
-        """
+
         city = tool_input.get("city", "")
         if not city:
             return "No city provided"

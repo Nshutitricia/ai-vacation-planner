@@ -10,5 +10,8 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY:str
     LLM_PROVIDER: str = "anthropic"
     DEBUG: bool = False
+    EMBEDDING_DIMENSIONS: int = 1024
+    VOYAGE_API_KEY: str
+    EMBEDDING_MODEL: str = "voyage-3.5-lite"
 
 settings = Settings()

@@ -65,12 +65,6 @@ class ItinerarySchema(BaseModel):
 
     @classmethod
     def output_json_schema(cls) -> dict:
-        """
-        JSON schema for Claude's output_config, so the API enforces
-        this exact shape instead of relying on prompt instructions.
-        Anthropic requires every object node to explicitly set
-        additionalProperties: false.
-        """
         schema = cls.model_json_schema()
         _forbid_additional_properties(schema)
         return schema
