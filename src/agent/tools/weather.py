@@ -7,5 +7,4 @@ _weather_tool = WeatherTool()
 
 @tool
 def get_weather(city: str) -> str:
-
     return _weather_tool.get_weather(city)
