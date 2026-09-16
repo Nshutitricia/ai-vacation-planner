@@ -71,7 +71,6 @@ class AnthropicLLM(BaseLLM):
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=self.max_tokens,
-                temperature=self.temperature,
                 system=system,
                 tools=[self.weather_tool.definition],
                 messages=messages,
@@ -81,7 +80,8 @@ class AnthropicLLM(BaseLLM):
                         "type": "json_schema",
                         "schema": ItinerarySchema.output_json_schema()
                     }
-                }
+                },
+                extra_body={"temperature": self.temperature}
             )
 
             logger.info(f"Stop reason: {response.stop_reason}")
