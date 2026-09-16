@@ -11,7 +11,13 @@ DAILY_COST_RANGES = {
 DEFAULT_RANGE = (60, 150)
 
 
-@tool
+@tool(description=(
+    "Estimate a rough total cost range for a trip based on its travel "
+    "style and length, covering accommodation, food, and activities "
+    "combined. This is a general heuristic estimate based on typical "
+    "travel-style spending patterns, not real-time or "
+    "destination-specific pricing."
+))
 def estimate_trip_cost(trip_style: str, days: int) -> str:
     low, high = DAILY_COST_RANGES.get(trip_style.lower(), DEFAULT_RANGE)
     total_low = low * days
