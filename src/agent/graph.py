@@ -49,7 +49,7 @@ def should_continue(state: AgentState) -> str:
 
 def build_agent_graph(session: Session):
     tools = build_tools(session)
-    model = ChatAnthropic(model="claude-haiku-4-5", api_key=settings.ANTHROPIC_API_KEY)
+    model = ChatAnthropic(model=settings.ANTHROPIC_MODEL, api_key=settings.ANTHROPIC_API_KEY)
     model_with_tools = model.bind_tools(tools)
     structured_model = model.with_structured_output(ItinerarySchema)
 
