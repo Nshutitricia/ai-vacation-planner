@@ -7,11 +7,12 @@ from src.config import settings
 logger = logging.getLogger(__name__)
 
 NARRATION_PROMPT = """
-Rewrite this itinerary as a natural, flowing spoken narration — like a
-friendly travel guide describing the trip out loud. No markdown, no
-bullet points, no headers, just natural spoken sentences. Mention each
-day, its theme, and its activities with their estimated costs, but
-phrase it conversationally rather than as a list.
+Summarize this itinerary as a short, natural spoken narration — like a
+friendly travel guide giving someone the highlights out loud. No
+markdown, no bullet points, no headers. Keep it brief: 3-5 sentences
+total, mentioning the overall theme of the trip and one or two
+standout activities per day — do NOT recite every single activity or
+cost, this needs to stay short enough to actually listen to.
 
 Itinerary data:
 {itinerary_text}
