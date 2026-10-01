@@ -3,12 +3,10 @@ import logging
 import urllib.error
 import urllib.request
 
-from langchain_core.tools import tool
-
 logger = logging.getLogger(__name__)
 
 
-def _fetch_weather(city: str) -> str:
+def fetch_weather(city: str) -> str:
     try:
         city_url = city.replace(" ", "+").replace(",", "")
         url = f"https://wttr.in/{city_url}?format=j1"
@@ -54,11 +52,3 @@ def _fetch_weather(city: str) -> str:
 def _fallback_weather(city: str) -> str:
     logger.info(f"Using fallback weather for {city}")
     return f"Weather data unavailable for {city}. Plan for varied conditions."
-
-
-@tool(description=(
-    "Get current weather conditions for a city, to help plan "
-    "weather-appropriate activities for a trip."
-))
-def get_weather(city: str) -> str:
-    return _fetch_weather(city)

@@ -1,8 +1,8 @@
 
 from mcp.server.fastmcp import FastMCP
 
-from src.agent.tools.maps import _fetch_place
-from src.agent.tools.weather import _fetch_weather
+from src.mcp_server.maps import fetch_place
+from src.mcp_server.weather import fetch_weather
 
 mcp = FastMCP("vacation-planner-tools")
 
@@ -12,7 +12,7 @@ mcp = FastMCP("vacation-planner-tools")
     "weather-appropriate activities for a trip."
 ))
 def get_weather(city: str) -> str:
-    return _fetch_weather(city)
+    return fetch_weather(city)
 
 
 @mcp.tool(description=(
@@ -22,7 +22,7 @@ def get_weather(city: str) -> str:
     "destination."
 ))
 def find_place(query: str) -> str:
-    return _fetch_place(query)
+    return fetch_place(query)
 
 
 if __name__ == "__main__":
