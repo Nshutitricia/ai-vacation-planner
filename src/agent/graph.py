@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Annotated, Optional, TypedDict
 
@@ -17,6 +18,8 @@ from src.agent.tools.weather import get_weather
 from src.config import settings
 from src.agent.retry_handler import RetryHandler
 from src.schemas.itinerary_schema import ItinerarySchema
+
+logger = logging.getLogger(__name__)
 
 
 class AgentState(TypedDict):
@@ -55,9 +58,15 @@ def build_agent_graph(session: Session):
 
     def call_model(state: AgentState) -> dict:
         response = model_with_tools.invoke(state["messages"])
+        if getattr(response, "tool_calls", None):
+            names = [tc["name"] for tc in response.tool_calls]
+            logger.info(f"Agent decided to call tool(s): {names}")
+        else:
+            logger.info("Agent has enough information, moving to finalize")
         return {"messages": [response]}
 
     def finalize(state: AgentState) -> dict:
+        logger.info("Finalizing structured itinerary")
         try:
             itinerary = structured_model.invoke(state["messages"])
         except Exception as e:
