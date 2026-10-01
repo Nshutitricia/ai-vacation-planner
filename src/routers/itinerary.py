@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Response
 from sqlmodel import Session, select
 from src.database import get_session
 from src.models.itinerary import ItineraryResponse, ItineraryCreate, Itinerary, ItineraryDay
@@ -10,6 +10,7 @@ from src.utils.background_tasks import log_itinerary_creation
 from src.models.itinerary import ItineraryGenerate
 from src.services.itinerary_service import ItineraryService
 from src.models.itinerary import ActivityDetail
+from src.agent.voice.synthesis import synthesize_speech
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,8 @@ router = APIRouter(
     prefix="/itinerary",
     tags=["itinerary"],
 )
+
+itinerary_service = ItineraryService()
 
 @router.post("", response_model=ItineraryResponse, status_code=201)
 def create_itinerary(
@@ -61,8 +64,7 @@ def generate_ai_itinerary(
     trip = fetch_owned_trip(itinerary_data.trip_id, current_user, session)
 
     try:
-        service = ItineraryService()
-        itinerary = service.generate(trip=trip, session=session)
+        itinerary = itinerary_service.generate(trip=trip, session=session)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
@@ -111,3 +113,37 @@ def get_itinerary(
         days=days,
         message="Itinerary retrieved successfully"
     )
+
+@router.get(
+    "/{trip_id}/audio",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {"audio/mpeg": {"schema": {"type": "string", "format": "binary"}}},
+            "description": "Spoken audio narration of the itinerary (MP3)",
+        }
+    },
+)
+def get_itinerary_audio(
+    trip: Trip = Depends(get_owned_trip),
+    session: Session = Depends(get_session)
+):
+    itinerary = session.exec(
+        select(Itinerary).filter(Itinerary.trip_id == trip.id)
+    ).first()
+    if not itinerary:
+        raise HTTPException(status_code=404, detail="Itinerary not found")
+
+    try:
+        text = itinerary_service.build_narration(itinerary)
+        audio_bytes = synthesize_speech(text)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception(f"Speech synthesis failed for trip {trip.id}")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not generate audio. Please try again later."
+        )
+
+    return Response(content=audio_bytes, media_type="audio/mpeg")

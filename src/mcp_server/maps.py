@@ -4,20 +4,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from langchain_core.tools import tool
-
 logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 
-@tool(description=(
-    "Look up a place — a landmark, address, neighborhood, or business — "
-    "and return its location details (name and coordinates), to help "
-    "plan routes and confirm a place actually exists near the "
-    "destination."
-))
-def find_place(query: str) -> str:
+def fetch_place(query: str) -> str:
     try:
         params = urllib.parse.urlencode({
             "q": query,
