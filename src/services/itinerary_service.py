@@ -4,6 +4,7 @@ from src.models.trip import Trip
 from src.models.itinerary import Itinerary, ItineraryDay
 from src.schemas.itinerary_schema import ItinerarySchema
 from src.agent.graph import run_agent
+from src.agent.voice.narration import narrate_itinerary
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,32 @@ class ItineraryService:
             itinerary_schema=itinerary_schema,
             session=session
         )
+
+    def build_narration(self, itinerary: Itinerary) -> str:
+
+        raw_summary = self._build_raw_summary(itinerary)
+        try:
+            return narrate_itinerary(raw_summary)
+        except ValueError:
+            logger.warning(
+                "Falling back to plain template summary (Option A) for "
+                f"trip {itinerary.trip_id}"
+            )
+            return raw_summary
+
+    def _build_raw_summary(self, itinerary: Itinerary) -> str:
+        parts = []
+        for day in itinerary.days:
+            parts.append(f"Day {day.get('day')}: {day.get('theme')}.")
+            for activity in day.get("activities", []):
+                if isinstance(activity, dict):
+                    name = activity.get("name", "")
+                    description = activity.get("description", "")
+                    cost = activity.get("estimated_cost", "")
+                    parts.append(f"{name}. {description} Estimated cost: {cost}.")
+                else:
+                    parts.append(str(activity))
+        return " ".join(parts)
 
     def _build_user_request(self, trip: Trip) -> str:
         return (
