@@ -49,7 +49,9 @@ def _run_async(coro):
 
 
 async def _fetch_mcp_tools() -> list:
-
+    logger.info(
+        "Connecting to MCP server (weather, maps) via stdio subprocess"
+    )
     client = MultiServerMCPClient({
         "vacation_tools": {
             "transport": "stdio",
@@ -57,7 +59,12 @@ async def _fetch_mcp_tools() -> list:
             "args": ["-m", "src.mcp_server.server"],
         }
     })
-    return await client.get_tools()
+    tools = await client.get_tools()
+    logger.info(
+        f"Retrieved {len(tools)} tool(s) from MCP server: "
+        f"{[t.name for t in tools]}"
+    )
+    return tools
 
 
 def build_tools(session: Session) -> list:

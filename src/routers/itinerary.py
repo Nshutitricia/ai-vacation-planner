@@ -114,7 +114,16 @@ def get_itinerary(
         message="Itinerary retrieved successfully"
     )
 
-@router.get("/{trip_id}/audio")
+@router.get(
+    "/{trip_id}/audio",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {"audio/mpeg": {"schema": {"type": "string", "format": "binary"}}},
+            "description": "Spoken audio narration of the itinerary (MP3)",
+        }
+    },
+)
 def get_itinerary_audio(
     trip: Trip = Depends(get_owned_trip),
     session: Session = Depends(get_session)
