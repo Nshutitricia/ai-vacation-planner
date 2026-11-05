@@ -4,6 +4,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from src.mcp_server.errors import ProviderUnavailableError
+
 logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
@@ -38,10 +40,16 @@ def fetch_place(query: str) -> str:
 
     except urllib.error.URLError as e:
         logger.warning(f"Could not look up place '{query}': {str(e)}")
-        return f"Location lookup for '{query}' is currently unavailable."
-    except (KeyError, json.JSONDecodeError) as e:
+        raise ProviderUnavailableError(
+            f"Location lookup is unavailable for '{query}'."
+        ) from e
+    except (KeyError, TypeError, json.JSONDecodeError) as e:
         logger.warning(f"Could not parse place lookup for '{query}': {str(e)}")
-        return f"Location lookup for '{query}' is currently unavailable."
-    except Exception as e:
-        logger.warning(f"Unexpected error looking up place '{query}': {str(e)}")
-        return f"Location lookup for '{query}' is currently unavailable."
+        raise ProviderUnavailableError(
+            f"Location lookup returned unusable data for '{query}'."
+        ) from e
+    except OSError as e:
+        logger.warning(f"Network error looking up place '{query}': {str(e)}")
+        raise ProviderUnavailableError(
+            f"Location lookup is unavailable for '{query}'."
+        ) from e
