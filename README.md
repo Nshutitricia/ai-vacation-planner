@@ -96,7 +96,9 @@ Since MCP's client is async-only and the rest of this codebase is
 synchronous, `src/agent/graph.py` bridges the two with a small,
 self-contained helper (`_run_async`) that runs the async MCP work on a
 dedicated thread — safe regardless of whether the caller already has its
-own event loop running (e.g. the async `/voice/plan` route).
+own event loop running. The `/voice/plan` route is a plain `def` route, so
+FastAPI runs its blocking work (Whisper, Claude, DB) in a threadpool and
+other requests are not held up.
 
 ### Voice (`src/agent/voice/`)
 
@@ -105,7 +107,10 @@ own event loop running (e.g. the async `/voice/plan` route).
   runs on-device), extracts structured trip details from the transcript
   via Claude, then runs it through the exact same trip/itinerary pipeline
   as the text-based flow — voice is just a second front door, not a
-  separate code path.
+  separate code path. Spoken preferences ("no museums") are passed to the
+  agent, the trip and itinerary are saved in a single transaction (a
+  failure leaves nothing behind), and the response lists which fields
+  (budget, style) were assumed because the speaker didn't mention them.
 - **Text-to-speech**: `GET /itinerary/{trip_id}/audio` reads an
   already-generated itinerary and returns it as spoken audio
   (`audio/mpeg`), decoupled from generation itself so any saved

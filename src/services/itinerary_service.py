@@ -1,7 +1,8 @@
 import logging
+from typing import Optional
 from sqlmodel import Session, select
 from src.models.trip import Trip
-from src.models.itinerary import Itinerary, ItineraryDay
+from src.models.itinerary import Itinerary
 from src.schemas.itinerary_schema import ItinerarySchema
 from src.agent.graph import run_agent
 from src.agent.voice.narration import narrate_itinerary
@@ -13,7 +14,9 @@ class ItineraryService:
     def generate(
         self,
         trip: Trip,
-        session: Session
+        session: Session,
+        preferences: Optional[str] = None,
+        commit: bool = True
     ) -> Itinerary:
         logger.info(
             f"Starting itinerary generation for "
@@ -22,7 +25,7 @@ class ItineraryService:
 
         self._check_existing_itinerary(trip.id, session)
 
-        user_request = self._build_user_request(trip)
+        user_request = self._build_user_request(trip, preferences)
         itinerary_schema = run_agent(user_request, session)
 
         logger.info(
@@ -32,7 +35,8 @@ class ItineraryService:
         return self._save_itinerary(
             trip_id=trip.id,
             itinerary_schema=itinerary_schema,
-            session=session
+            session=session,
+            commit=commit
         )
 
     def build_narration(self, itinerary: Itinerary) -> str:
@@ -61,14 +65,24 @@ class ItineraryService:
                     parts.append(str(activity))
         return " ".join(parts)
 
-    def _build_user_request(self, trip: Trip) -> str:
-        return (
+    def _build_user_request(
+        self,
+        trip: Trip,
+        preferences: Optional[str] = None
+    ) -> str:
+        request = (
             f"Plan a {trip.days}-day trip to {trip.destination} with a "
             f"total budget of ${trip.budget}, in a {trip.trip_style} "
             f"style. Include weather-friendly activities, and use "
             f"relevant local travel knowledge where it's genuinely "
             f"helpful."
         )
+        if preferences:
+            request += (
+                f" The traveler also asked for the following, which the "
+                f"itinerary must respect: {preferences}"
+            )
+        return request
 
     def _check_existing_itinerary(
         self,
@@ -91,7 +105,8 @@ class ItineraryService:
         self,
         trip_id: int,
         itinerary_schema: ItinerarySchema,
-        session: Session
+        session: Session,
+        commit: bool = True
     ) -> Itinerary:
         days_data = [
             {
@@ -115,8 +130,11 @@ class ItineraryService:
         )
 
         session.add(itinerary)
-        session.commit()
-        session.refresh(itinerary)
+        if commit:
+            session.commit()
+            session.refresh(itinerary)
+        else:
+            session.flush()
 
         logger.info(
             f"Saved itinerary for trip {trip_id} "

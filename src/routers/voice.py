@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import tempfile
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -22,19 +23,21 @@ router = APIRouter(
 voice_service = VoiceService()
 
 
+# Plain `def`, not `async def`: transcription, Claude calls and DB work all block,
+# so FastAPI runs this in its threadpool and the event loop stays free.
 @router.post("/plan", response_model=VoicePlanResponse, status_code=201)
-async def plan_trip_from_voice(
+def plan_trip_from_voice(
     audio: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
     suffix = os.path.splitext(audio.filename or "")[1] or ".wav"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(await audio.read())
+        shutil.copyfileobj(audio.file, tmp)
         tmp_path = tmp.name
 
     try:
-        transcribed_text, itinerary = voice_service.plan_trip_from_audio(
+        result = voice_service.plan_trip_from_audio(
             tmp_path, current_user, session
         )
     except ValueError as e:
@@ -48,9 +51,20 @@ async def plan_trip_from_voice(
     finally:
         os.unlink(tmp_path)
 
+    itinerary = result.itinerary
+    message = "Itinerary generated successfully from voice input"
+    if result.inferred_fields:
+        message += (
+            f" (assumed because you didn't mention them: "
+            f"{', '.join(result.inferred_fields)})"
+        )
+
     return VoicePlanResponse(
-        transcribed_text=transcribed_text,
+        transcribed_text=result.transcribed_text,
         trip_id=itinerary.trip_id,
+        trip_details=result.trip,
+        preferences=result.preferences,
+        inferred_fields=result.inferred_fields,
         days=[ItineraryDay(**day) for day in itinerary.days],
-        message="Itinerary generated successfully from voice input"
+        message=message
     )

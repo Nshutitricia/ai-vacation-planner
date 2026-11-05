@@ -14,6 +14,11 @@ search_travel_knowledge refers to a different city, region, or country
 than the requested destination, ignore that part rather than forcing
 it into your answer.
 
+If a tool reports an error (for example the weather or place service is
+unavailable), do not invent that information. Plan without it, and do not
+retry the same failing call repeatedly. A "no location found" result is
+different: it means the place was not found, not that the service failed.
+
 Once you have gathered enough information, provide your final answer
 as a complete, structured itinerary.
 """
