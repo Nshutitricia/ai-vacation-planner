@@ -4,11 +4,22 @@ from src.models.itinerary import Itinerary
 
 
 class TripService:
-    def create(self, trip_data: TripCreate, user_id: int, session: Session) -> Trip:
+    def create(
+        self,
+        trip_data: TripCreate,
+        user_id: int,
+        session: Session,
+        commit: bool = True
+    ) -> Trip:
         trip = Trip.model_validate(trip_data, update={"user_id": user_id})
         session.add(trip)
-        session.commit()
-        session.refresh(trip)
+        if commit:
+            session.commit()
+            session.refresh(trip)
+        else:
+            # Assigns trip.id without ending the transaction, so the caller
+            # can commit trip + itinerary together (or roll both back).
+            session.flush()
         return trip
 
     def list_for_user(self, user_id: int, session: Session) -> list[Trip]:
