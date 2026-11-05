@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from sqlmodel import Session, select
 from src.models.trip import Trip
-from src.models.itinerary import Itinerary, ItineraryDay
+from src.models.itinerary import Itinerary
 from src.schemas.itinerary_schema import ItinerarySchema
 from src.agent.graph import run_agent
 from src.agent.voice.narration import narrate_itinerary

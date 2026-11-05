@@ -32,7 +32,7 @@ class VoiceExtraction(BaseModel):
     trip_style: str = Field(min_length=2, max_length=50)
     budget_stated: bool
     style_stated: bool
-    preferences: Optional[str] = None
+    preferences: Optional[str] = Field(default=None, max_length=300)
 
 
 @dataclass
