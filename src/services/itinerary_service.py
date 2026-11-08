@@ -8,6 +8,8 @@ from src.agent.graph import run_agent
 from src.agent.voice.narration import narrate_itinerary
 
 from src.guardrails.errors import OutputGuardError
+from src.observability.datadog import traced
+from src.observability.usage import report_usage, track_usage
 from src.guardrails.output_guard import validate_itinerary
 from src.guardrails.prompt_isolation import isolate
 
@@ -17,6 +19,7 @@ MAX_OUTPUT_ATTEMPTS = 2
 
 
 class ItineraryService:
+    @traced("generate_itinerary")
     def generate(
         self,
         trip: Trip,
@@ -32,7 +35,11 @@ class ItineraryService:
         self._check_existing_itinerary(trip.id, session)
 
         user_request = self._build_user_request(trip, preferences)
-        itinerary_schema = self._run_validated_agent(user_request, trip, session)
+        with track_usage() as usage:
+            try:
+                itinerary_schema = self._run_validated_agent(user_request, trip, session)
+            finally:
+                report_usage(usage, f"trip {trip.id}")
 
         logger.info(
             f"Successfully generated itinerary for {trip.destination} via agent"

@@ -29,7 +29,7 @@ def find_problems(itinerary: ItinerarySchema, trip: Trip) -> list[str]:
     if numbers != list(range(1, len(numbers) + 1)):
         problems.append(f"day numbers are not 1..N in order: {numbers}")
 
-    cost = _first_amount(itinerary.estimated_total_cost)
+    cost = first_amount(itinerary.estimated_total_cost)
     if cost is not None and cost > trip.budget * MAX_BUDGET_RATIO:
         problems.append(
             f"estimated cost {cost:g} is more than {MAX_BUDGET_RATIO:g}x "
@@ -51,7 +51,7 @@ def _destinations_match(generated: str, requested: str) -> bool:
     return requested in generated or generated in requested
 
 
-def _first_amount(text: str) -> float | None:
+def first_amount(text: str) -> float | None:
 
     match = re.search(r"\d[\d,]*(?:\.\d+)?", text)
     if not match:

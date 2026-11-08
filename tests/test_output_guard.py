@@ -61,8 +61,6 @@ def test_validate_raises_with_every_problem():
     assert "destination" in str(err.value) and "expected 2 day" in str(err.value)
 
 
-# --- service behaviour: regenerate once, then fail --------------------------
-
 def test_a_bad_first_attempt_is_regenerated():
     with patch("src.services.itinerary_service.run_agent",
                side_effect=[_itinerary(destination="Madrid"), _itinerary()]) as agent:

@@ -11,6 +11,7 @@ from src.models.itinerary import ItineraryGenerate
 from src.services.itinerary_service import ItineraryService
 from src.models.itinerary import ActivityDetail
 from src.agent.voice.synthesis import synthesize_speech
+from src.utils.api_docs import error_responses
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +56,23 @@ def create_itinerary(
         message="Itinerary created successfully"
     )
 
-@router.post("/generate", response_model=ItineraryResponse, status_code=201)
+@router.post(
+    "/generate",
+    response_model=ItineraryResponse,
+    status_code=201,
+    responses=error_responses(400, 401, 403, 404, 500),
+)
 def generate_ai_itinerary(
     itinerary_data: ItineraryGenerate,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
+    """Generate a day-by-day itinerary for a trip with the AI agent.
+
+    The plan is checked against the trip (destination, number of days, day order,
+    budget) and regenerated once if it does not match. A plan that still fails is
+    never saved. Only one itinerary can exist per trip.
+    """
     trip = fetch_owned_trip(itinerary_data.trip_id, current_user, session)
 
     try:
@@ -121,7 +133,8 @@ def get_itinerary(
         200: {
             "content": {"audio/mpeg": {"schema": {"type": "string", "format": "binary"}}},
             "description": "Spoken audio narration of the itinerary (MP3)",
-        }
+        },
+        **error_responses(401, 403, 404, 500),
     },
 )
 def get_itinerary_audio(

@@ -18,6 +18,7 @@ from src.agent.prompts import AGENT_SYSTEM_PROMPT
 from src.agent.tools.knowledge import create_knowledge_search_tool
 from src.agent.tools.pricing import estimate_trip_cost
 from src.config import settings
+from src.observability.usage import current_tracker
 from src.agent.retry_handler import RetryHandler
 from src.schemas.itinerary_schema import ItinerarySchema
 
@@ -79,6 +80,21 @@ def _allowed_only(tools: list) -> list:
     return allowed
 
 
+def tool_error_message(error: Exception) -> str:
+    """What the model is told when a tool fails.
+
+    Any tool can fail (a provider outage, a rate limit). The model is told so
+    and plans without it, instead of the whole request crashing. The real
+    error is logged, not shown to the model.
+    """
+    logger.warning(f"Tool call failed: {type(error).__name__}: {error}")
+    return "This tool is currently unavailable. Continue without it."
+
+
+def build_tool_node(tools: list) -> ToolNode:
+    return ToolNode(tools, handle_tool_errors=tool_error_message)
+
+
 def build_tools(session: Session) -> list:
     mcp_tools = _allowed_only(_run_async(_fetch_mcp_tools()))
     return [
@@ -124,7 +140,7 @@ def build_agent_graph(session: Session):
             raise ValueError(f"Failed to produce a valid itinerary: {str(e)}") from e
         return {"itinerary": itinerary}
 
-    tool_node = ToolNode(tools)
+    tool_node = build_tool_node(tools)
 
     graph = StateGraph(AgentState)
     graph.add_node("agent", call_model)
@@ -149,9 +165,13 @@ def run_agent(user_request: str, session: Session) -> ItinerarySchema:
     graph = build_agent_graph(session)
     messages = build_initial_messages(user_request)
     retry_handler = RetryHandler(max_attempts=3, delay=1.0)
+    tracker = current_tracker()
 
     async def _ainvoke():
-        config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+        config = {
+            "configurable": {"thread_id": str(uuid.uuid4())},
+            "callbacks": [tracker] if tracker else [],
+        }
 
         result = await graph.ainvoke(
             {"messages": messages, "itinerary": None},

@@ -11,6 +11,7 @@ from src.models.itinerary import ItineraryDay
 from src.models.user import User
 from src.models.voice import VoicePlanResponse
 from src.services.voice_service import VoiceService
+from src.utils.api_docs import error_responses
 from src.utils.deps import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -25,12 +26,24 @@ voice_service = VoiceService()
 
 # Plain `def`, not `async def`: transcription, Claude calls and DB work all block,
 # so FastAPI runs this in its threadpool and the event loop stays free.
-@router.post("/plan", response_model=VoicePlanResponse, status_code=201)
+@router.post(
+    "/plan",
+    response_model=VoicePlanResponse,
+    status_code=201,
+    responses=error_responses(400, 401, 500),
+)
 def plan_trip_from_voice(
     audio: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
+    """Speak a trip request and get a planned trip back.
+
+    The audio is transcribed, checked for instruction-like or unsupported requests
+    (such as booking), and turned into a trip and itinerary saved together: if
+    generation fails, nothing is saved. The response lists which fields (`budget`,
+    `trip_style`) were assumed because they were not mentioned.
+    """
     suffix = os.path.splitext(audio.filename or "")[1] or ".wav"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         shutil.copyfileobj(audio.file, tmp)
