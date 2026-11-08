@@ -1,7 +1,4 @@
 import os
-import sys
-import types
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -11,31 +8,15 @@ from src.observability import datadog
 
 @pytest.fixture(autouse=True)
 def fresh_state(monkeypatch):
-    # Record "not set" so anything init_datadog() exports is removed after each test.
-    for name in ("DD_API_KEY", "DD_SITE", "DD_TRACE_AGENT_TIMEOUT_SECONDS"):
+    for name in (
+        "DD_API_KEY", "DD_SITE", "DD_TRACE_AGENT_TIMEOUT_SECONDS",
+        "DD_TRACE_LANGCHAIN_ENABLED", "DD_TRACE_ANTHROPIC_ENABLED",
+    ):
         monkeypatch.setenv(name, "placeholder")
         monkeypatch.delenv(name)
     monkeypatch.setattr(datadog, "_enabled", False)
     monkeypatch.setattr(settings, "DATADOG_ENABLED", False)
     monkeypatch.setattr(settings, "DD_API_KEY", "")
-
-
-@pytest.fixture
-def fake_ddtrace(monkeypatch):
-    """Stand-in Datadog modules, so tests need neither the real library nor a network."""
-    llmobs = MagicMock(name="LLMObs")
-    workflow = MagicMock(name="workflow")
-    workflow.side_effect = lambda name, **kwargs: (lambda func: func)  # decorator that returns the function unchanged
-    modules = {
-        "ddtrace": types.ModuleType("ddtrace"),
-        "ddtrace.llmobs": types.ModuleType("ddtrace.llmobs"),
-        "ddtrace.llmobs.decorators": types.ModuleType("ddtrace.llmobs.decorators"),
-    }
-    modules["ddtrace.llmobs"].LLMObs = llmobs
-    modules["ddtrace.llmobs.decorators"].workflow = workflow
-    for name, module in modules.items():
-        monkeypatch.setitem(sys.modules, name, module)
-    return llmobs, workflow
 
 
 def _enable(monkeypatch):
@@ -73,6 +54,16 @@ def test_the_key_and_site_are_exported_for_datadogs_other_writers(monkeypatch, f
     assert os.environ["DD_API_KEY"] == "test-key"
     assert os.environ["DD_SITE"] == settings.DD_SITE
     assert float(os.environ["DD_TRACE_AGENT_TIMEOUT_SECONDS"]) >= 5
+
+
+def test_automatic_llm_spans_are_off_so_calls_are_not_counted_twice(monkeypatch, fake_ddtrace):
+    for name in ("DD_TRACE_LANGCHAIN_ENABLED", "DD_TRACE_ANTHROPIC_ENABLED"):
+        monkeypatch.setenv(name, "placeholder")
+        monkeypatch.delenv(name)
+    _enable(monkeypatch)
+    datadog.init_datadog()
+    assert os.environ["DD_TRACE_LANGCHAIN_ENABLED"] == "false"
+    assert os.environ["DD_TRACE_ANTHROPIC_ENABLED"] == "false"
 
 
 def test_a_datadog_failure_never_stops_the_app(monkeypatch, fake_ddtrace):

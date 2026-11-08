@@ -22,8 +22,6 @@ class TripCreate(SQLModel):
     budget: float = Field(gt=0)
     trip_style: str = Field(min_length=2, max_length=50)
 
-    # These strings are interpolated into the agent's prompt, so they are
-    # checked here, which covers the REST routes and the voice flow alike.
     @field_validator("destination")
     @classmethod
     def destination_is_safe(cls, value: str) -> str:

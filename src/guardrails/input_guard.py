@@ -49,7 +49,6 @@ def check_injection(text: str, field: str = "text") -> None:
     normalized = _normalize(text)
     for pattern in INJECTION_PATTERNS:
         if re.search(pattern, normalized):
-            # Log the field, not the content: it may be hostile or sensitive.
             logger.warning(f"Rejected possible prompt injection in {field}")
             raise InputRejectedError(
                 f"The {field} contains instructions that can't be accepted."

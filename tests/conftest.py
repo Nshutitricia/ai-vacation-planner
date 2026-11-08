@@ -1,7 +1,8 @@
 import os
+import sys
+import types
+from unittest.mock import MagicMock
 
-# Must run before anything imports src.config: environment variables beat .env,
-# so tests never send data to a real Datadog account even if .env enables it.
 os.environ["DATADOG_ENABLED"] = "false"
 
 import pytest
@@ -18,7 +19,6 @@ from src.models.user import User
 
 @compiles(JSONB, "sqlite")
 def _jsonb_as_json_on_sqlite(element, compiler, **kw):
-    # Tests run on in-memory SQLite; Postgres JSONB is rendered as plain JSON.
     return "JSON"
 
 
@@ -39,3 +39,21 @@ def engine():
     )
     yield engine
     engine.dispose()
+
+
+@pytest.fixture
+def fake_ddtrace(monkeypatch):
+    """Stand-in Datadog modules, so tests need neither the real library nor a network."""
+    llmobs = MagicMock(name="LLMObs")
+    workflow = MagicMock(name="workflow")
+    workflow.side_effect = lambda name, **kwargs: (lambda func: func)
+    modules = {
+        "ddtrace": types.ModuleType("ddtrace"),
+        "ddtrace.llmobs": types.ModuleType("ddtrace.llmobs"),
+        "ddtrace.llmobs.decorators": types.ModuleType("ddtrace.llmobs.decorators"),
+    }
+    modules["ddtrace.llmobs"].LLMObs = llmobs
+    modules["ddtrace.llmobs.decorators"].workflow = workflow
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+    return llmobs, workflow

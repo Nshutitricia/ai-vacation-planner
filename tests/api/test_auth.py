@@ -36,7 +36,7 @@ def test_login_rejects_a_wrong_password_and_unknown_user_alike(client):
     wrong = client.post("/auth/login", data={"username": "carol", "password": "wrongpass"})
     unknown = client.post("/auth/login", data={"username": "nobody", "password": "secret123"})
     assert wrong.status_code == unknown.status_code == 400
-    assert wrong.json() == unknown.json()  # does not reveal which usernames exist
+    assert wrong.json() == unknown.json()
 
 
 def test_me_returns_the_logged_in_user(client):

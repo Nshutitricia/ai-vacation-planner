@@ -4,7 +4,6 @@ from pathlib import Path
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
-# One entry per judged case. Filled in by the eval tests.
 ENTRIES: list[dict] = []
 
 

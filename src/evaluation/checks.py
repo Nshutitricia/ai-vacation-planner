@@ -9,8 +9,6 @@ from src.schemas.itinerary_schema import ItinerarySchema
 
 VALID, COMPLETE, FORMAT, RELEVANT = "valid", "complete", "format", "relevant"
 
-# Wording that is a legitimate cost even though it is not a number,
-# e.g. "Free (optional donations)" or "Included in activity cost".
 NO_COST_WORDS = ("free", "included", "no cost", "complimentary", "n/a", "none")
 
 

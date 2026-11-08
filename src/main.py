@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from src.observability.datadog import init_datadog
 
-init_datadog()  # before the routers import the LLM libraries; a no-op unless enabled
+init_datadog()
 
 from src.routers import users, auth,trips,itinerary, knowledge, voice
 

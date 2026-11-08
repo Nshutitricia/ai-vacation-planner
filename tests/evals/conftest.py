@@ -1,6 +1,5 @@
 import os
 
-# Keep DeepEval from sending usage data or prompting to log in to Confident AI.
 os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 
 from tests.evals import report  # noqa: E402

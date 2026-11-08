@@ -23,7 +23,6 @@ from tests.evals.dataset import load_golden_dataset
 
 pytestmark = pytest.mark.eval
 
-# EVAL_OUTPUTS lets you judge a different saved run, e.g. to compare before and after a change.
 OUTPUTS_PATH = Path(os.environ.get("EVAL_OUTPUTS") or Path(__file__).parent / "results" / "outputs.json")
 THRESHOLD = 0.7
 CASES = [c for c in load_golden_dataset() if c.expected.outcome == "itinerary"]
@@ -124,7 +123,7 @@ def test_llm_judged_quality(case, saved_outputs, judge):
             "passed": bool(metric.success),
             "reason": metric.reason,
         })
-    report.record(case.id, request, plan, scores)  # kept even when the case passes
+    report.record(case.id, request, plan, scores)
 
     failed = [s for s in scores if not s["passed"]]
     assert not failed, "; ".join(

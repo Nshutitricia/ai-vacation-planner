@@ -22,7 +22,7 @@ def _run_tools(tools, calls):
     graph.add_edge(START, "tools")
     graph.add_edge("tools", END)
     state = graph.compile().invoke({"messages": [AIMessage(content="", tool_calls=calls)]})
-    return state["messages"][1:]  # drop the AI message that made the calls
+    return state["messages"][1:]
 
 
 def _call(name, call_id):
@@ -33,7 +33,7 @@ def test_a_failing_tool_is_reported_to_the_model_instead_of_crashing():
     message = _run_tools([flaky_search], [_call("flaky_search", "1")])[0]
     assert message.status == "error"
     assert "unavailable" in message.content
-    assert "RPM" not in message.content  # provider details are logged, not sent to the model
+    assert "RPM" not in message.content
 
 
 def test_one_failing_tool_does_not_stop_the_others_in_the_same_step():

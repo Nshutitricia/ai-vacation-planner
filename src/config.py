@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     INJECTION_CLASSIFIER_ENABLED: bool = True
     EVAL_JUDGE_MODEL: str = "claude-haiku-4-5"
 
-    # Datadog LLM Observability. Off by default so the app and tests run without it.
     DATADOG_ENABLED: bool = False
     DD_API_KEY: str = ""
     DD_SITE: str = "datadoghq.com"

@@ -50,7 +50,6 @@ class ExtractedTrip:
 
 def extract_trip_details(transcribed_text: str) -> ExtractedTrip:
 
-    # Speech is untrusted input that is about to be placed in a prompt.
     validate_free_text(transcribed_text, "spoken request", max_length=2000)
     classify_free_text(transcribed_text, "spoken request")
 
@@ -80,6 +79,5 @@ def extract_trip_details(transcribed_text: str) -> ExtractedTrip:
 
     preferences = (extraction.preferences or "").strip() or None
     if preferences:
-        # Model output, but derived from user speech and passed on to the agent.
         validate_free_text(preferences, "preferences", max_length=300)
     return ExtractedTrip(trip=trip, preferences=preferences, inferred_fields=inferred)

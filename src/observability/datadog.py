@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+from typing import Optional
 
 from src.config import settings
 
@@ -23,13 +24,11 @@ def init_datadog() -> bool:
         logger.warning("DATADOG_ENABLED is true but DD_API_KEY is empty; observability is off")
         return False
     try:
-        # Datadog's other writers read the environment, and .env is only loaded
-        # into our settings, so pass the values on explicitly.
         os.environ.setdefault("DD_API_KEY", settings.DD_API_KEY)
         os.environ.setdefault("DD_SITE", settings.DD_SITE)
-        # The default 2s write timeout is too short for a TLS handshake plus
-        # request on slower connections, and traces get dropped.
         os.environ.setdefault("DD_TRACE_AGENT_TIMEOUT_SECONDS", "10")
+        os.environ.setdefault("DD_TRACE_LANGCHAIN_ENABLED", "false")
+        os.environ.setdefault("DD_TRACE_ANTHROPIC_ENABLED", "false")
 
         from ddtrace.llmobs import LLMObs
 
@@ -62,8 +61,6 @@ def traced(name: str):
                 return func(*args, **kwargs)
             from ddtrace.llmobs.decorators import workflow
 
-            # No automatic input/output capture: the arguments include user
-            # records and database sessions, which must not leave the app.
             return workflow(name=name, _automatic_io_annotation=False)(func)(*args, **kwargs)
 
         return wrapper
@@ -71,13 +68,45 @@ def traced(name: str):
     return decorator
 
 
-def annotate(metadata: dict, metrics: dict) -> None:
-    """Attach metadata and numeric metrics to the active span. A no-op unless enabled."""
+def annotate(metadata: dict) -> None:
+    """Attach readable metadata to the active span. A no-op unless enabled."""
     if not _enabled:
         return
     try:
         from ddtrace.llmobs import LLMObs
 
-        LLMObs.annotate(metadata=metadata, metrics=metrics)
+        LLMObs.annotate(metadata=metadata)
     except Exception:
         logger.warning("Could not attach usage to the Datadog span", exc_info=True)
+
+
+def start_llm_span(model_name: Optional[str], input_messages: list[dict]):
+    """Open a Datadog LLM span for one Claude call. Returns None when disabled."""
+    if not _enabled:
+        return None
+    try:
+        from ddtrace.llmobs import LLMObs
+
+        span = LLMObs.llm(model_name=model_name or "unknown", model_provider="anthropic", name="claude_call")
+        LLMObs.annotate(span=span, input_data=input_messages)
+        return span
+    except Exception:
+        logger.warning("Could not start a Datadog LLM span", exc_info=True)
+        return None
+
+
+def finish_llm_span(span, output_text: str = "", metrics: Optional[dict] = None, error: Optional[BaseException] = None) -> None:
+    """Close the span opened by start_llm_span, with its tokens and cost, or its error."""
+    if span is None:
+        return
+    try:
+        from ddtrace.llmobs import LLMObs
+
+        if error is not None:
+            span.set_exc_info(type(error), error, error.__traceback__)
+        else:
+            LLMObs.annotate(span=span, output_data=output_text, metrics=metrics or {})
+    except Exception:
+        logger.warning("Could not annotate a Datadog LLM span", exc_info=True)
+    finally:
+        span.finish()

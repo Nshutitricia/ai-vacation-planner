@@ -36,7 +36,6 @@ OUTPUT_PATH = Path(__file__).resolve().parent.parent / "tests" / "evals" / "resu
 
 def generate_one(service: ItineraryService, case, session: Session) -> dict:
     trip_data = TripCreate(**case.trip)
-    # Not saved to the database: the trip only carries the values to the agent.
     trip = Trip(**trip_data.model_dump(), user_id=0)
     request = service._build_user_request(trip, case.preferences)
 
@@ -45,7 +44,7 @@ def generate_one(service: ItineraryService, case, session: Session) -> dict:
         try:
             itinerary = service._run_validated_agent(request, trip, session)
             result = {"ok": True, "error": None, "itinerary": itinerary.model_dump()}
-        except Exception as e:  # a failed generation is itself a result worth recording
+        except Exception as e:
             logger.exception(f"Generation failed for {case.id}")
             result = {"ok": False, "error": f"{type(e).__name__}: {e}", "itinerary": None}
     return {"id": case.id, **result, "seconds": round(time.time() - started, 1), "usage": usage.as_dict()}

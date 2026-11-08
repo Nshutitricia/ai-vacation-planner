@@ -1,11 +1,13 @@
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.outputs import ChatGeneration, LLMResult
 from langgraph.graph import END, START, MessagesState, StateGraph
 
+from src.observability import datadog
 from src.observability.usage import (
     UsageTracker,
     current_tracker,
@@ -92,15 +94,16 @@ def test_track_usage_is_scoped_to_its_block():
     assert current_tracker() is None
 
 
-def test_reporting_attaches_tokens_and_cost_to_the_datadog_span():
+def test_reporting_attaches_the_usage_summary_to_the_datadog_span():
     tracker = UsageTracker()
     tracker.record(1000, 200, HAIKU)
     with patch("src.observability.datadog.annotate") as annotate:
         report_usage(tracker, "trip 1")
-    metrics = annotate.call_args.kwargs["metrics"]
-    assert metrics["total_tokens"] == 1200
-    assert metrics["total_cost"] == pytest.approx(0.002)
-    assert annotate.call_args.kwargs["metadata"]["usage"]["model"] == HAIKU
+    usage = annotate.call_args.kwargs["metadata"]["usage"]
+    assert usage["model"] == HAIKU
+    assert usage["total_tokens"] == 1200
+    assert usage["estimated_cost_usd"] == pytest.approx(0.002)
+    assert "metrics" not in annotate.call_args.kwargs
 
 
 def test_nothing_is_reported_when_no_model_was_called():
@@ -135,3 +138,70 @@ def test_run_agent_gives_the_graph_the_active_tracker():
 
 def test_run_agent_adds_no_callbacks_when_nothing_is_tracking():
     assert _run_agent_with_fake_graph().config["callbacks"] == []
+
+
+def _start_call(tracker, run_id, model="claude-haiku-4-5"):
+    tracker.on_chat_model_start({}, [[HumanMessage("plan a trip")]], run_id=run_id, invocation_params={"model": model})
+
+
+def _end_call(tracker, run_id, message):
+    tracker.on_llm_end(LLMResult(generations=[[ChatGeneration(message=message)]]), run_id=run_id)
+
+
+def test_each_claude_call_becomes_a_datadog_llm_span_with_tokens_and_cost(monkeypatch, fake_ddtrace):
+    llmobs, _ = fake_ddtrace
+    monkeypatch.setattr(datadog, "_enabled", True)
+    tracker, run = UsageTracker(), uuid4()
+
+    _start_call(tracker, run)
+    llmobs.llm.assert_called_once_with(model_name="claude-haiku-4-5", model_provider="anthropic", name="claude_call")
+    assert llmobs.annotate.call_args.kwargs["input_data"] == [{"role": "user", "content": "plan a trip"}]
+
+    _end_call(tracker, run, _reply(1000, 200))
+    metrics = llmobs.annotate.call_args.kwargs["metrics"]
+    assert metrics["total_tokens"] == 1200
+    assert metrics["total_cost"] == pytest.approx(0.002)
+    llmobs.llm.return_value.finish.assert_called_once()
+
+
+def test_a_failed_call_closes_its_span_with_the_error(monkeypatch, fake_ddtrace):
+    llmobs, _ = fake_ddtrace
+    monkeypatch.setattr(datadog, "_enabled", True)
+    tracker, run = UsageTracker(), uuid4()
+    _start_call(tracker, run)
+
+    tracker.on_llm_error(RuntimeError("rate limited"), run_id=run)
+
+    span = llmobs.llm.return_value
+    span.set_exc_info.assert_called_once()
+    span.finish.assert_called_once()
+
+
+def test_an_unknown_model_span_has_tokens_but_no_invented_cost(monkeypatch, fake_ddtrace):
+    llmobs, _ = fake_ddtrace
+    monkeypatch.setattr(datadog, "_enabled", True)
+    tracker, run = UsageTracker(), uuid4()
+    _start_call(tracker, run, model="some-future-model")
+    _end_call(tracker, run, _reply(500, 100, model="some-future-model"))
+    metrics = llmobs.annotate.call_args.kwargs["metrics"]
+    assert metrics["total_tokens"] == 600
+    assert "total_cost" not in metrics
+
+
+def test_no_spans_are_created_when_datadog_is_off(fake_ddtrace):
+    llmobs, _ = fake_ddtrace
+    tracker, run = UsageTracker(), uuid4()
+    _start_call(tracker, run)
+    _end_call(tracker, run, _reply(100, 20))
+    llmobs.llm.assert_not_called()
+    assert tracker.total_tokens == 120
+
+
+def test_a_datadog_problem_never_breaks_a_claude_call(monkeypatch, fake_ddtrace):
+    llmobs, _ = fake_ddtrace
+    monkeypatch.setattr(datadog, "_enabled", True)
+    llmobs.llm.side_effect = RuntimeError("datadog unreachable")
+    tracker, run = UsageTracker(), uuid4()
+    _start_call(tracker, run)
+    _end_call(tracker, run, _reply(100, 20))
+    assert tracker.total_tokens == 120

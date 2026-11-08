@@ -303,7 +303,7 @@ deterministic. Live evaluation is separate, marked `eval`, and excluded
 from normal runs.
 
 ```bash
-python -m pytest -q                 # offline suite (194 tests)
+python -m pytest -q                 # offline suite (200 tests)
 python -m pytest -m eval -v         # live evaluation (calls Claude, costs money)
 ```
 
@@ -327,8 +327,8 @@ Datadog **LLM Observability** runs in agentless mode (data goes straight to
 Datadog; no local agent). It is off by default, so the app and the tests run
 without it.
 
-- **Automatic LLM tracking**: every Claude call records the model, latency,
-  token usage and any error.
+- **LLM call tracking**: every Claude call is recorded as an LLM span with its
+  model, latency, token usage, estimated cost and any error.
 - **Request spans**: itinerary generation (`generate_itinerary`) and voice
   planning (`plan_trip_from_voice`) are traced with their duration, and an
   exception shows up as a failed request.
@@ -343,17 +343,34 @@ DD_API_KEY=<API key from Datadog > Organization Settings > API Keys>
 DD_SITE=datadoghq.com
 ```
 
+Check the setup without exposing the key:
+
+```bash
+python scripts/check_datadog.py             # key shape and whether Datadog accepts it
+python scripts/send_datadog_test_trace.py   # sends one test trace
+```
+
+Then open **LLM Observability > Traces** in Datadog (not APM). Prompts and
+answers of the Claude calls are stored by Datadog, which includes trip
+details and plans; review that before using real user data.
+
 ### Token usage and cost
 
 Every Claude call the agent makes is counted, including retries and
-regenerations, so the figure is the true cost of one itinerary. For each
-generation the app:
+regenerations, so the figure is the true cost of one itinerary. The app:
 
-- **logs** one line: `LLM usage for trip 5: model=... calls=4 input_tokens=... output_tokens=... estimated_cost=$0.0xxx`
-- **attaches** the totals (`input_tokens`, `output_tokens`, `total_tokens`,
-  `input_cost`, `output_cost`, `total_cost`) and the model to the
-  `generate_itinerary` span in Datadog. This is also done when generation
-  fails, because a failed request still spends tokens.
+- records **each Claude call as its own Datadog LLM span** (model, provider,
+  input and output tokens, and cost). These are the spans Datadog's **Cost**
+  and token views are built from. A call that fails still closes its span,
+  with the error.
+- **logs** one line per generation: `LLM usage for trip 5: model=... calls=4 input_tokens=... output_tokens=... estimated_cost=$0.0xxx`
+- attaches the same summary as readable metadata to the `generate_itinerary`
+  span. This also happens when generation fails, because a failed request
+  still spends tokens.
+
+Datadog's automatic LangChain and Anthropic spans are switched off, because
+they would record each call a second time and double the totals on the Cost
+page.
 
 The evaluation script records the same numbers for every golden case and
 prints the total and the average cost per itinerary when it finishes:
@@ -372,19 +389,19 @@ with tokens and no cost, never a guessed cost.
 
 Scope: this counts the itinerary agent, which is where nearly all the tokens
 go. The smaller Claude calls (trip extraction from speech, the injection
-classifier, narration) and the evaluation judge are not included in this
-figure; Datadog's own LLM spans record them.
+classifier, narration) and the evaluation judge are not included.
 
-Check the setup without exposing the key:
+### Screenshots
 
-```bash
-python scripts/check_datadog.py             # key shape and whether Datadog accepts it
-python scripts/send_datadog_test_trace.py   # sends one test trace
-```
+Traces from LLM Observability, with each request's duration and its status
+(OK or error), which shows latency and failed requests:
 
-Then open **LLM Observability > Traces** in Datadog (not APM). Prompts and
-answers of the Claude calls are stored by Datadog, which includes trip
-details and plans; review that before using real user data.
+![Datadog traces](docs/observability/traces.png)
+
+The Cost view, built from the per-call LLM spans: total estimated cost, total
+tokens and the average cost per request, grouped by model and provider:
+
+![Datadog token usage and cost](docs/observability/usage.png)
 
 ## Project structure
 

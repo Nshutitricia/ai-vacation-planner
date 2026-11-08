@@ -58,8 +58,6 @@ class ItineraryService:
         trip: Trip,
         session: Session
     ) -> ItinerarySchema:
-        # The output guard checks the plan against the trip it was made for.
-        # One more attempt is allowed, since a bad plan is often a one-off.
         for attempt in range(1, MAX_OUTPUT_ATTEMPTS + 1):
             itinerary_schema = run_agent(user_request, session)
             try:

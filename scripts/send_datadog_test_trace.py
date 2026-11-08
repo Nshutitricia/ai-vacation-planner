@@ -16,7 +16,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.config import settings
 from src.observability import datadog
 
-# Show what Datadog's LLM Observability uploader says, which is normally silent.
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
 logging.getLogger("ddtrace.llmobs").setLevel(logging.DEBUG)
 

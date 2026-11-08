@@ -115,13 +115,13 @@ def test_token_usage_and_cost_are_reported_for_a_generation(client, alice, trip_
     with patch(AGENT, side_effect=_agent_that_uses_tokens()), \
          patch("src.observability.datadog.annotate") as annotate:
         assert _generate(client, alice, trip_id).status_code == 201
-    metrics = annotate.call_args.kwargs["metrics"]
-    assert metrics["total_tokens"] == 1200
-    assert metrics["total_cost"] == pytest.approx(0.002)
+    usage = annotate.call_args.kwargs["metadata"]["usage"]
+    assert usage["total_tokens"] == 1200
+    assert usage["estimated_cost_usd"] == pytest.approx(0.002)
 
 
 def test_usage_is_still_reported_when_generation_fails(client, alice, trip_id):
     with patch(AGENT, side_effect=_agent_that_uses_tokens(fail=True)), \
          patch("src.observability.datadog.annotate") as annotate:
         assert _generate(client, alice, trip_id).status_code == 500
-    assert annotate.call_args.kwargs["metrics"]["total_tokens"] == 1200
+    assert annotate.call_args.kwargs["metadata"]["usage"]["total_tokens"] == 1200
