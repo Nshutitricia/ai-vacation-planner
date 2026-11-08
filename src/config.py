@@ -15,5 +15,6 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "voyage-3.5-lite"
     WHISPER_MODEL: str = "base"
     ANTHROPIC_MODEL: str = "claude-haiku-4-5"
+    INJECTION_CLASSIFIER_ENABLED: bool = True
 
 settings = Settings()
