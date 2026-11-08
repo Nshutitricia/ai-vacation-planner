@@ -67,8 +67,20 @@ async def _fetch_mcp_tools() -> list:
     return tools
 
 
+
+ALLOWED_MCP_TOOLS = {"get_weather", "find_place"}
+
+
+def _allowed_only(tools: list) -> list:
+    allowed = [t for t in tools if t.name in ALLOWED_MCP_TOOLS]
+    for tool in tools:
+        if tool.name not in ALLOWED_MCP_TOOLS:
+            logger.warning(f"Ignoring unexpected MCP tool '{tool.name}'")
+    return allowed
+
+
 def build_tools(session: Session) -> list:
-    mcp_tools = _run_async(_fetch_mcp_tools())
+    mcp_tools = _allowed_only(_run_async(_fetch_mcp_tools()))
     return [
         *mcp_tools,
         estimate_trip_cost,

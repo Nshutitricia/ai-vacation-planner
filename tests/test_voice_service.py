@@ -46,10 +46,13 @@ def _extracted(preferences="no museums", inferred=None):
 
 SCHEMA = ItinerarySchema.model_validate({
     "destination": "Lisbon",
-    "total_days": 1,
+    "total_days": 2,
     "estimated_total_cost": "$100",
-    "days": [{"day": 1, "theme": "Old town", "activities": [
-        {"name": "Walk", "description": "Stroll", "estimated_cost": "$0"}]}]
+    "days": [
+        {"day": n, "theme": "Old town", "activities": [
+            {"name": "Walk", "description": "Stroll", "estimated_cost": "$0"}]}
+        for n in (1, 2)
+    ]
 })
 
 

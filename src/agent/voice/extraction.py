@@ -5,6 +5,7 @@ from langchain_anthropic import ChatAnthropic
 from pydantic import BaseModel, Field
 
 from src.config import settings
+from src.guardrails.input_guard import validate_free_text
 from src.models.trip import TripCreate
 
 EXTRACTION_PROMPT = """
@@ -44,6 +45,9 @@ class ExtractedTrip:
 
 def extract_trip_details(transcribed_text: str) -> ExtractedTrip:
 
+    # Speech is untrusted input that is about to be placed in a prompt.
+    validate_free_text(transcribed_text, "spoken request", max_length=2000)
+
     model = ChatAnthropic(model=settings.ANTHROPIC_MODEL, api_key=settings.ANTHROPIC_API_KEY)
     structured_model = model.with_structured_output(VoiceExtraction)
 
@@ -69,4 +73,7 @@ def extract_trip_details(transcribed_text: str) -> ExtractedTrip:
         inferred.append("trip_style")
 
     preferences = (extraction.preferences or "").strip() or None
+    if preferences:
+        # Model output, but derived from user speech and passed on to the agent.
+        validate_free_text(preferences, "preferences", max_length=300)
     return ExtractedTrip(trip=trip, preferences=preferences, inferred_fields=inferred)

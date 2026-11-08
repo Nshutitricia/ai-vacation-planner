@@ -7,7 +7,12 @@ from src.schemas.itinerary_schema import ItinerarySchema
 from src.agent.graph import run_agent
 from src.agent.voice.narration import narrate_itinerary
 
+from src.guardrails.errors import OutputGuardError
+from src.guardrails.output_guard import validate_itinerary
+
 logger = logging.getLogger(__name__)
+
+MAX_OUTPUT_ATTEMPTS = 2
 
 
 class ItineraryService:
@@ -26,7 +31,7 @@ class ItineraryService:
         self._check_existing_itinerary(trip.id, session)
 
         user_request = self._build_user_request(trip, preferences)
-        itinerary_schema = run_agent(user_request, session)
+        itinerary_schema = self._run_validated_agent(user_request, trip, session)
 
         logger.info(
             f"Successfully generated itinerary for {trip.destination} via agent"
@@ -38,6 +43,27 @@ class ItineraryService:
             session=session,
             commit=commit
         )
+
+    def _run_validated_agent(
+        self,
+        user_request: str,
+        trip: Trip,
+        session: Session
+    ) -> ItinerarySchema:
+        # The output guard checks the plan against the trip it was made for.
+        # One more attempt is allowed, since a bad plan is often a one-off.
+        for attempt in range(1, MAX_OUTPUT_ATTEMPTS + 1):
+            itinerary_schema = run_agent(user_request, session)
+            try:
+                validate_itinerary(itinerary_schema, trip)
+                return itinerary_schema
+            except OutputGuardError:
+                if attempt == MAX_OUTPUT_ATTEMPTS:
+                    raise
+                logger.warning(
+                    f"Generated itinerary for trip {trip.id} failed validation "
+                    f"(attempt {attempt}); regenerating"
+                )
 
     def build_narration(self, itinerary: Itinerary) -> str:
 
