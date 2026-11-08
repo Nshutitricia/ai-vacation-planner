@@ -1,8 +1,12 @@
+import logging
+
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from src.services.knowledge_service import KnowledgeService
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeSearchInput(BaseModel):
@@ -13,9 +17,12 @@ def create_knowledge_search_tool(session: Session) -> StructuredTool:
     knowledge_service = KnowledgeService()
 
     def _search(query: str) -> str:
+        logger.info(f"Searching travel knowledge base for: {query}")
         chunks = knowledge_service.search(query, session, top_k=3)
         if not chunks:
+            logger.info("No relevant knowledge found")
             return "No relevant travel knowledge found for this query."
+        logger.info(f"Found {len(chunks)} relevant chunk(s): {[c.source for c in chunks]}")
         return "\n\n".join(chunk.content for chunk in chunks)
 
     return StructuredTool.from_function(

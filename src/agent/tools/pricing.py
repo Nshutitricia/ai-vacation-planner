@@ -1,4 +1,8 @@
+import logging
+
 from langchain_core.tools import tool
+
+logger = logging.getLogger(__name__)
 
 DAILY_COST_RANGES = {
     "budget": (30, 60),
@@ -19,6 +23,7 @@ DEFAULT_RANGE = (60, 150)
     "destination-specific pricing."
 ))
 def estimate_trip_cost(trip_style: str, days: int) -> str:
+    logger.info(f"Estimating cost for a {days}-day {trip_style} trip")
     low, high = DAILY_COST_RANGES.get(trip_style.lower(), DEFAULT_RANGE)
     total_low = low * days
     total_high = high * days

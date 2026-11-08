@@ -3,12 +3,12 @@ import logging
 import urllib.error
 import urllib.request
 
-from langchain_core.tools import tool
+from src.mcp_server.errors import ProviderUnavailableError
 
 logger = logging.getLogger(__name__)
 
 
-def _fetch_weather(city: str) -> str:
+def fetch_weather(city: str) -> str:
     try:
         city_url = city.replace(" ", "+").replace(",", "")
         url = f"https://wttr.in/{city_url}?format=j1"
@@ -42,23 +42,17 @@ def _fetch_weather(city: str) -> str:
 
     except urllib.error.URLError as e:
         logger.warning(f"Could not fetch weather for {city}: {str(e)}")
-        return _fallback_weather(city)
-    except (KeyError, json.JSONDecodeError) as e:
+        raise ProviderUnavailableError(
+            f"Weather service is unavailable for {city}."
+        ) from e
+    except (KeyError, IndexError, json.JSONDecodeError) as e:
         logger.warning(f"Could not parse weather for {city}: {str(e)}")
-        return _fallback_weather(city)
-    except Exception as e:
-        logger.warning(f"Unexpected error getting weather for {city}: {str(e)}")
-        return _fallback_weather(city)
-
-
-def _fallback_weather(city: str) -> str:
-    logger.info(f"Using fallback weather for {city}")
-    return f"Weather data unavailable for {city}. Plan for varied conditions."
-
-
-@tool(description=(
-    "Get current weather conditions for a city, to help plan "
-    "weather-appropriate activities for a trip."
-))
-def get_weather(city: str) -> str:
-    return _fetch_weather(city)
+        raise ProviderUnavailableError(
+            f"Weather service returned unusable data for {city}."
+        ) from e
+    except OSError as e:
+        # Covers socket timeouts and connection resets that urllib doesn't wrap.
+        logger.warning(f"Network error getting weather for {city}: {str(e)}")
+        raise ProviderUnavailableError(
+            f"Weather service is unavailable for {city}."
+        ) from e

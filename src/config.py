@@ -13,5 +13,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 1024
     VOYAGE_API_KEY: str
     EMBEDDING_MODEL: str = "voyage-3.5-lite"
+    WHISPER_MODEL: str = "base"
+    ANTHROPIC_MODEL: str = "claude-haiku-4-5"
 
 settings = Settings()
