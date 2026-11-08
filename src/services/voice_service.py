@@ -8,6 +8,7 @@ from src.agent.voice.transcription import transcribe_audio
 from src.models.itinerary import Itinerary
 from src.models.trip import TripCreate
 from src.models.user import User
+from src.observability.datadog import traced
 from src.services.itinerary_service import ItineraryService
 from src.services.trip_service import TripService
 
@@ -27,6 +28,7 @@ class VoiceService:
         self.trip_service = TripService()
         self.itinerary_service = ItineraryService()
 
+    @traced("plan_trip_from_voice")
     def plan_trip_from_audio(
         self,
         audio_path: str,

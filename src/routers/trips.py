@@ -4,6 +4,7 @@ from sqlmodel import Session
 from src.database import get_session
 from src.models.trip import TripResponse, TripCreate, Trip
 from src.models.user import User
+from src.utils.api_docs import error_responses
 from src.utils.deps import get_current_user, get_owned_trip
 
 from src.utils.background_tasks import log_trip_creation
@@ -17,13 +18,18 @@ router = APIRouter(
 
 trip_service = TripService()
 
-@router.post("", response_model=TripResponse, status_code=201)
+@router.post("", response_model=TripResponse, status_code=201, responses=error_responses(401))
 def create_trip(
         trip_data: TripCreate,
         background_tasks: BackgroundTasks,
         current_user: User = Depends(get_current_user),
         session: Session = Depends(get_session)
 ):
+    """Create a trip.
+
+    `destination` and `trip_style` are checked before they can reach an AI prompt:
+    unsafe characters or instruction-like text are rejected with a 422.
+    """
     trip = trip_service.create(trip_data, user_id=current_user.id, session=session)
     background_tasks.add_task(
         log_trip_creation,

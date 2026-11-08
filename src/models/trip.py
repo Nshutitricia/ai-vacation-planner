@@ -1,7 +1,10 @@
 from datetime import datetime
 from typing import Optional
 
+from pydantic import field_validator
 from sqlmodel import SQLModel, Field
+
+from src.guardrails.input_guard import validate_place_name, validate_trip_style
 
 
 class Trip(SQLModel, table=True):
@@ -18,6 +21,16 @@ class TripCreate(SQLModel):
     days: int = Field(ge=1, le=30)
     budget: float = Field(gt=0)
     trip_style: str = Field(min_length=2, max_length=50)
+
+    @field_validator("destination")
+    @classmethod
+    def destination_is_safe(cls, value: str) -> str:
+        return validate_place_name(value)
+
+    @field_validator("trip_style")
+    @classmethod
+    def trip_style_is_safe(cls, value: str) -> str:
+        return validate_trip_style(value)
 
 
 class TripResponse(SQLModel):

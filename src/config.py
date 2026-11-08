@@ -15,5 +15,13 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "voyage-3.5-lite"
     WHISPER_MODEL: str = "base"
     ANTHROPIC_MODEL: str = "claude-haiku-4-5"
+    INJECTION_CLASSIFIER_ENABLED: bool = True
+    EVAL_JUDGE_MODEL: str = "claude-haiku-4-5"
+
+    DATADOG_ENABLED: bool = False
+    DD_API_KEY: str = ""
+    DD_SITE: str = "datadoghq.com"
+    DD_SERVICE: str = "ai-vacation-planner"
+    DD_ENV: str = "dev"
 
 settings = Settings()

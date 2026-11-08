@@ -1,10 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, select
 
 from src.agent.voice.extraction import ExtractedTrip
 from src.models.itinerary import Itinerary
@@ -14,20 +11,8 @@ from src.schemas.itinerary_schema import ItinerarySchema
 from src.services.voice_service import VoiceService
 
 
-@compiles(JSONB, "sqlite")
-def _jsonb_as_json_on_sqlite(element, compiler, **kw):
-    # Tests run on in-memory SQLite; Postgres JSONB is rendered as plain JSON.
-    return "JSON"
-
-
 @pytest.fixture
-def session():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(
-        engine, tables=[User.__table__, Trip.__table__, Itinerary.__table__]
-    )
+def session(engine):
     with Session(engine) as s:
         user = User(username="tester", email="a@b.c", hashed_password="x")
         s.add(user)
@@ -46,10 +31,13 @@ def _extracted(preferences="no museums", inferred=None):
 
 SCHEMA = ItinerarySchema.model_validate({
     "destination": "Lisbon",
-    "total_days": 1,
+    "total_days": 2,
     "estimated_total_cost": "$100",
-    "days": [{"day": 1, "theme": "Old town", "activities": [
-        {"name": "Walk", "description": "Stroll", "estimated_cost": "$0"}]}]
+    "days": [
+        {"day": n, "theme": "Old town", "activities": [
+            {"name": "Walk", "description": "Stroll", "estimated_cost": "$0"}]}
+        for n in (1, 2)
+    ]
 })
 
 
